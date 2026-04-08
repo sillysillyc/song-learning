@@ -12,6 +12,7 @@ import { MarkItem } from '../MarkItem';
 import { BadgePicker } from '../BadgePicker';
 import { createLyricMark, getSelectionOffset } from '@/utils/markUtils';
 import type { BadgeColor, BadgeShape, BadgeSymbol } from '@/store';
+import './index.less';
 
 const { Paragraph } = Typography;
 
@@ -220,8 +221,8 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
   };
 
   return (
-    <div ref={lyricsContainerRef}>
-      <Space direction="vertical" style={{ width: '100%' }} size="large">
+    <div ref={lyricsContainerRef} className="lyrics-editor">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: '100%' }}>
         {/* 编辑模式切换按钮 */}
         <div style={{ textAlign: 'right', marginBottom: 16 }}>
           <Button
@@ -236,7 +237,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
         <div>
           <Paragraph style={{ fontSize: 16 }}>
             <Typography.Title level={5}>歌词</Typography.Title>
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
               {lyrics.map((lyric, index) => (
                 <div
                   key={index}
@@ -254,7 +255,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
                   {renderLyricWithMarks(lyric.content, index)}
                 </div>
               ))}
-            </Space>
+            </div>
           </Paragraph>
         </div>
 
@@ -262,7 +263,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
         {editingMark && (
           <div>
             <Divider />
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
               {editingMark.selectedText && (
                 <div>
                   <strong>选中的文字：</strong>
@@ -291,7 +292,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
                 </Button>
                 <Button onClick={handleCancelMark}>取消</Button>
               </Space>
-            </Space>
+            </div>
           </div>
         )}
 
@@ -301,7 +302,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
             💡 在歌词上拖动选择文字，即可创建标记
           </div>
         )}
-      </Space>
+      </div>
     </div>
   );
 });

@@ -1,0 +1,76 @@
+.badge-picker {
+  .color-section,
+  .shape-section,
+  .symbol-section {
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .color-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, transform 0.2s;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+
+      &.selected {
+        border-color: #000;
+      }
+
+      &.circle {
+        border-radius: 50%;
+      }
+
+      &.square {
+        border-radius: 4px;
+      }
+
+      .check-mark {
+        color: #fff;
+        font-size: 16px;
+      }
+    }
+
+    .custom-color-picker {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid #d9d9d9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(45deg, #ff0000, #00ff00, #0000ff);
+
+      &.selected {
+        border-color: #000;
+      }
+
+      .check-mark {
+        color: #fff;
+        font-size: 16px;
+      }
+    }
+  }
+
+  .symbol-select {
+    width: 100%;
+  }
+}
