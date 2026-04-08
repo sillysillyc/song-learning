@@ -47,6 +47,7 @@
         transition: all 0.15s;
         user-select: text;
         white-space: pre;
+        position: relative;
 
         // 编辑模式下可点击
         &.editable {
@@ -63,14 +64,73 @@
           color: #fff;
         }
 
-        // 已有标记状态
+        // 已有标记状态 - 基础样式
         &.marked {
-          background-color: #1677ff;
-          color: #fff;
           cursor: pointer;
+          transition: all 0.15s;
 
           &:hover {
-            filter: brightness(1.1);
+            filter: brightness(0.95);
+          }
+        }
+
+        // 标记形状：默认（背景高亮）
+        &.mark-shape-default {
+          background-color: var(--mark-bg-color);
+          color: #fff;
+        }
+
+        // 标记形状：方形（同默认）
+        &.mark-shape-square {
+          background-color: var(--mark-bg-color);
+          color: #fff;
+        }
+
+        // 标记形状：圆形
+        &.mark-shape-circle {
+          background-color: var(--mark-bg-color);
+          color: #fff;
+          border-radius: 50%;
+          display: inline-block;
+          min-width: 1.2em;
+          text-align: center;
+        }
+
+        // 标记形状：下划线
+        &.mark-shape-underline {
+          background-color: transparent !important;
+          color: inherit;
+          border-bottom: 2px solid var(--mark-bg-color);
+          padding-bottom: 2px;
+
+          &:hover {
+            border-bottom-width: 3px;
+            filter: none;
+          }
+        }
+
+        // 标记符号显示
+        &.has-symbol {
+          &::after {
+            content: attr(data-symbol);
+            display: block;
+            font-size: 10px;
+            text-align: center;
+            color: #fff;
+            background-color: var(--mark-bg-color);
+            border-radius: 2px;
+            padding: 1px 2px;
+            margin-top: 2px;
+            white-space: nowrap;
+          }
+
+          // 下划线标记的符号显示在下方
+          &.mark-shape-underline::after {
+            position: absolute;
+            bottom: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
           }
         }
 

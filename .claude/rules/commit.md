@@ -1,5 +1,5 @@
-1. 自动按模块和进度执行 git commit 命令和提交 message，
-2. 完成 commit 操作后自动 push
+<!-- 1. 自动按模块和进度执行 git commit 命令和提交 message， -->
+<!-- 2. 完成 commit 操作后自动 push -->
 3. commit message 规范
 ---
 feat: 功能

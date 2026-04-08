@@ -251,6 +251,24 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
     setEditingNote('');
   };
 
+  // 获取标记的背景颜色
+  const getMarkBackgroundColor = (color: BadgeColor): string => {
+    if (color.type === 'custom') {
+      return color.value;
+    }
+    const colorMap: Record<string, string> = {
+      blue: '#1677ff',
+      red: '#ff4d4f',
+      green: '#52c41a',
+      orange: '#fa8c16',
+      purple: '#722ed1',
+      pink: '#eb2f96',
+      cyan: '#13c2c2',
+      gray: '#8c8c8c',
+    };
+    return colorMap[color.value] || '#1677ff';
+  };
+
   // 渲染歌词中的标记（按字/单词展示）
   const renderLyricWithChars = useCallback(
     (lyricContent: string, lyricIndex: number) => {
@@ -263,10 +281,17 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
           (m) => charIndex >= m.startOffset && charIndex < m.startOffset + m.length,
         );
 
+        const bgColor = mark ? getMarkBackgroundColor(mark.color) : undefined;
+        const symbol = mark?.symbol.type === 'emoji' || mark?.symbol.type === 'text' ? mark.symbol.value : null;
+        const shapeClass = mark ? `mark-shape-${mark.shape}` : '';
+        const hasSymbolClass = symbol ? 'has-symbol' : '';
+
         return (
           <span
             key={`${lyricIndex}-${charIndex}`}
-            className={`lyric-char ${mark ? 'marked' : ''} ${isEditMode ? 'editable' : ''}`}
+            className={`lyric-char ${mark ? 'marked' : ''} ${shapeClass} ${hasSymbolClass} ${isEditMode ? 'editable' : ''}`}
+            style={{ '--mark-bg-color': bgColor } as React.CSSProperties}
+            data-symbol={symbol || ''}
             onClick={() => mark && handleMarkClick(mark)}
           >
             {segment.text}
