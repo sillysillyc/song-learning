@@ -30,34 +30,34 @@
       flex-shrink: 0;
     }
 
+    // 字符容器 - 使用 inline 布局让文字可以连续选择
     .lyric-chars {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2px;
       flex: 1;
       font-size: 16px;
-      line-height: 1.8;
+      line-height: 2;
+      word-break: keep-all;
+      white-space: pre-wrap;
 
-      // 单个字符/单词
+      // 单个字符/单词 - 必须用 inline 才能连续选择
       .lyric-char {
-        padding: 2px 4px;
-        border-radius: 4px;
+        display: inline;
+        padding: 0 1px;
+        border-radius: 2px;
         cursor: default;
-        transition: all 0.2s;
-        display: inline-block;
-        min-width: 20px;
-        text-align: center;
+        transition: all 0.15s;
+        user-select: text;
+        white-space: pre;
 
         // 编辑模式下可点击
         &.editable {
-          cursor: pointer;
+          cursor: text;
 
           &:hover {
             background-color: #e6f4ff;
           }
         }
 
-        // 选中状态
+        // 选中状态 - 使用 ::selection 伪元素
         &.selected {
           background-color: #1677ff;
           color: #fff;
@@ -72,6 +72,12 @@
           &:hover {
             filter: brightness(1.1);
           }
+        }
+
+        // 自定义选中文本颜色
+        &::selection {
+          background-color: #1677ff;
+          color: #fff;
         }
       }
     }
@@ -93,25 +99,9 @@
 
       .lyric-line {
         background-color: #f5f5f5;
-        cursor: pointer;
 
         &:hover {
           background-color: #e6e6e6;
-        }
-
-        .lyric-chars {
-          .lyric-char {
-            &.editable {
-              &:hover {
-                background-color: #d6e4ff;
-              }
-
-              &.selected {
-                background-color: #1677ff;
-                color: #fff;
-              }
-            }
-          }
         }
       }
 

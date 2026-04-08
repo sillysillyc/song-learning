@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useRef } from 'react';
+import { memo, useState, useCallback, useRef, useEffect } from 'react';
 import { Typography, Space, Button, Modal, Input, Divider } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -28,48 +28,58 @@ interface EditingMarkState {
   length: number;
 }
 
-interface LyricCharProps {
-  text: string;
-  index: number;
-  lyricIndex: number;
-  isEditMode: boolean;
-  isSelected: boolean;
-  isMarked: boolean;
-  mark?: ILyricMark;
-  onMouseDown: (index: number, lyricIndex: number) => void;
-  onMouseEnter: (index: number, lyricIndex: number) => void;
-  onClick: () => void;
-}
+// 获取选中文字在歌词行中的位置
+const getSelectionInLine = (
+  selection: Selection,
+  lineElement: HTMLElement,
+): { start: number; end: number; text: string } | null => {
+  if (!selection || selection.rangeCount === 0) return null;
 
-// 单个字符/单词组件
-const LyricChar = memo((props: LyricCharProps) => {
-  const { text, index, lyricIndex, isEditMode, isSelected, isMarked, onMouseDown, onMouseEnter, onClick } = props;
+  const range = selection.getRangeAt(0);
+  if (range.collapsed) return null;
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      onMouseDown(index, lyricIndex);
-    },
-    [index, lyricIndex, onMouseDown],
+  // 检查选择是否在此行内
+  if (!lineElement.contains(range.commonAncestorContainer)) return null;
+
+  // 获取行内所有文本节点
+  const textNodes: { node: Text; startIndex: number }[] = [];
+  let currentIndex = 0;
+
+  const walker = document.createTreeWalker(
+    lineElement,
+    NodeFilter.SHOW_TEXT,
   );
 
-  const handleMouseEnter = useCallback(() => {
-    if (isEditMode) {
-      onMouseEnter(index, lyricIndex);
+  let node: Text | null;
+  while ((node = walker.nextNode() as Text)) {
+    // 跳过纯空白文本节点
+    if (node.textContent && node.textContent.trim() !== '') {
+      textNodes.push({ node, startIndex: currentIndex });
+      currentIndex += node.textContent.length;
     }
-  }, [isEditMode, index, lyricIndex, onMouseEnter]);
+  }
 
-  return (
-    <span
-      className={`lyric-char ${isSelected ? 'selected' : ''} ${isMarked ? 'marked' : ''} ${isEditMode ? 'editable' : ''}`}
-      onMouseDown={handleMouseDown}
-      onMouseEnter={handleMouseEnter}
-      onClick={onClick}
-    >
-      {text}
-    </span>
-  );
-});
+  // 找到选区的起始和结束位置
+  let startOffset = -1;
+  let endOffset = -1;
+
+  textNodes.forEach(({ node, startIndex }) => {
+    if (node === range.startContainer) {
+      startOffset = startIndex + range.startOffset;
+    }
+    if (node === range.endContainer) {
+      endOffset = startIndex + range.endOffset;
+    }
+  });
+
+  if (startOffset === -1 || endOffset === -1) return null;
+
+  return {
+    start: startOffset,
+    end: endOffset,
+    text: range.toString(),
+  };
+};
 
 export const LyricsEditor = memo((props: ILyricsEditorProps) => {
   const { lyrics = [] } = props;
@@ -90,107 +100,91 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
   });
   const [editingNote, setEditingNote] = useState('');
 
-  const isSelectingRef = useRef(false);
-  const anchorRef = useRef<{ index: number; lyricIndex: number } | null>(null);
+  const lyricsRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  // 鼠标按下 - 开始选择
-  const handleMouseDown = useCallback(
-    (charIndex: number, lyricIndex: number) => {
-      if (!isEditMode) return;
-
-      isSelectingRef.current = true;
-      anchorRef.current = { index: charIndex, lyricIndex };
-
-      // 检查是否点击在已有标记上
-      const existingMark = marks.find(
-        (mark: ILyricMark) =>
-          mark.lyricIndex === lyricIndex &&
-          charIndex >= mark.startOffset &&
-          charIndex < mark.startOffset + mark.length,
-      );
-
-      if (existingMark) {
-        // 点击已有标记，进入编辑模式
-        setEditingMark({
-          isEditing: true,
-          markId: existingMark.id,
-          selectedText: '',
-          lyricIndex,
-          startOffset: existingMark.startOffset,
-          length: existingMark.length,
-        });
-        setSelectedMarkStyle({
-          color: existingMark.color,
-          shape: existingMark.shape,
-          symbol: existingMark.symbol,
-        });
-        setEditingNote(existingMark.note || '');
-        isSelectingRef.current = false;
-        anchorRef.current = null;
-      } else {
-        // 开始新的选择
-        setEditingMark({
-          isEditing: true,
-          lyricIndex,
-          selectedText: lyrics[lyricIndex]?.content[charIndex] || '',
-          startOffset: charIndex,
-          length: 1,
-        });
-      }
-    },
-    [isEditMode, marks, lyrics],
-  );
-
-  // 鼠标移入 - 扩展选择
-  const handleMouseEnter = useCallback(
-    (charIndex: number, lyricIndex: number) => {
-      if (!isEditMode || !isSelectingRef.current || !anchorRef.current) return;
-
-      // 只允许在同一行内选择
-      if (lyricIndex !== anchorRef.current.lyricIndex) return;
-
-      const anchor = anchorRef.current.index;
-      const start = Math.min(anchor, charIndex);
-      const length = Math.abs(charIndex - anchor) + 1;
-      const lyricContent = lyrics[lyricIndex]?.content || '';
-
-      setEditingMark((prev) => {
-        if (!prev || prev.lyricIndex !== lyricIndex) return prev;
-        return {
-          ...prev,
-          startOffset: start,
-          length,
-          selectedText: lyricContent.substring(start, start + length),
-        };
-      });
-    },
-    [isEditMode, lyrics],
-  );
-
-  // 鼠标松开
+  // 处理鼠标松开 - 获取原生选择
   const handleMouseUp = useCallback(() => {
-    isSelectingRef.current = false;
-  }, []);
-
-  // 点击已有标记
-  const handleMarkClick = useCallback((mark: ILyricMark) => {
     if (!isEditMode) return;
 
-    setEditingMark({
-      isEditing: true,
-      markId: mark.id,
-      selectedText: '',
-      lyricIndex: mark.lyricIndex,
-      startOffset: mark.startOffset,
-      length: mark.length,
-    });
-    setSelectedMarkStyle({
-      color: mark.color,
-      shape: mark.shape,
-      symbol: mark.symbol,
-    });
-    setEditingNote(mark.note || '');
-  }, [isEditMode]);
+    setTimeout(() => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+
+      const range = selection.getRangeAt(0);
+      const selectedText = range.toString().trim();
+      if (!selectedText) return;
+
+      // 查找选择在哪一行
+      let lyricIndex = -1;
+      let selectionInfo: { start: number; end: number; text: string } | null = null;
+
+      lyricsRefs.current.forEach((ref, index) => {
+        if (selectionInfo) return;
+        const info = getSelectionInLine(selection, ref);
+        if (info) {
+          lyricIndex = index;
+          selectionInfo = info;
+        }
+      });
+
+      if (lyricIndex === -1 || !selectionInfo) return;
+
+      const { start, end, text } = selectionInfo;
+
+      // 检查是否选择在已有标记范围内
+      const hasExistingMark = marks.some(
+        (mark: ILyricMark) =>
+          mark.lyricIndex === lyricIndex &&
+          ((start >= mark.startOffset && start < mark.startOffset + mark.length) ||
+            (end > mark.startOffset && end <= mark.startOffset + mark.length) ||
+            (start <= mark.startOffset && end >= mark.startOffset + mark.length)),
+      );
+
+      if (hasExistingMark) {
+        Modal.warning({
+          title: '无法创建标记',
+          content: '该区域已有标记，请先删除现有标记',
+        });
+        selection.removeAllRanges();
+        return;
+      }
+
+      // 创建新的选择状态
+      setEditingMark({
+        isEditing: true,
+        lyricIndex,
+        selectedText: text,
+        startOffset: start,
+        length: end - start,
+      });
+
+      // 清除原生选择
+      selection.removeAllRanges();
+    }, 10);
+  }, [isEditMode, marks]);
+
+  // 点击已有标记
+  const handleMarkClick = useCallback(
+    (mark: ILyricMark) => {
+      if (!isEditMode) return;
+
+      setEditingMark({
+        isEditing: true,
+        markId: mark.id,
+        selectedText: '',
+        lyricIndex: mark.lyricIndex,
+        startOffset: mark.startOffset,
+        length: mark.length,
+      });
+      setSelectedMarkStyle({
+        color: mark.color,
+        shape: mark.shape,
+        symbol: mark.symbol,
+      });
+      setEditingNote(mark.note || '');
+    },
+    [isEditMode],
+  );
 
   // 保存标记
   const handleSaveMark = () => {
@@ -269,30 +263,26 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
           (m) => charIndex >= m.startOffset && charIndex < m.startOffset + m.length,
         );
 
-        // 检查是否在当前选择范围内
-        const isSelected = editingMark?.lyricIndex === lyricIndex &&
-          charIndex >= editingMark.startOffset &&
-          charIndex < editingMark.startOffset + editingMark.length;
-
         return (
-          <LyricChar
+          <span
             key={`${lyricIndex}-${charIndex}`}
-            text={segment.text}
-            index={charIndex}
-            lyricIndex={lyricIndex}
-            isEditMode={isEditMode}
-            isSelected={!!isSelected}
-            isMarked={!!mark}
-            mark={mark}
-            onMouseDown={handleMouseDown}
-            onMouseEnter={handleMouseEnter}
+            className={`lyric-char ${mark ? 'marked' : ''} ${isEditMode ? 'editable' : ''}`}
             onClick={() => mark && handleMarkClick(mark)}
-          />
+          >
+            {segment.text}
+          </span>
         );
       });
     },
-    [marks, editingMark, isEditMode, handleMouseDown, handleMouseEnter, handleMarkClick],
+    [marks, isEditMode, handleMarkClick],
   );
+
+  // 注册歌词行 ref
+  useEffect(() => {
+    return () => {
+      lyricsRefs.current.clear();
+    };
+  }, []);
 
   return (
     <div className="lyrics-editor" onMouseUp={handleMouseUp}>
@@ -304,7 +294,13 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
             <Title level={5}>歌词</Title>
             <div className="lyrics-container">
               {lyrics.map((lyric, index) => (
-                <div key={index} className="lyric-line">
+                <div
+                  key={index}
+                  className="lyric-line"
+                  ref={(el) => {
+                    if (el) lyricsRefs.current.set(index, el);
+                  }}
+                >
                   <span className="lyric-index">[{String(index + 1).padStart(2, '0')}]</span>
                   <div className="lyric-chars">{renderLyricWithChars(lyric.content, index)}</div>
                 </div>
