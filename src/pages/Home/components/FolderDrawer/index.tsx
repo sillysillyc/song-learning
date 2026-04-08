@@ -161,7 +161,7 @@ export const FolderDrawer = memo(() => {
     <Drawer
       className="folder-drawer"
       title={currentFolder?.name || '文件夹'}
-      width={720}
+      size="large"
       onClose={onClose}
       open={isFolderDrawerOpen}
       maskClosable

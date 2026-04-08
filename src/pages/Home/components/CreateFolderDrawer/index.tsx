@@ -45,7 +45,7 @@ export const CreateFolderDrawer = memo((props: CreateFolderDrawerProps) => {
       className="create-folder-drawer"
       title="新增文件夹"
       placement="right"
-      width={400}
+      size="default"
       onClose={handleCancel}
       open={open}
       extra={
