@@ -284,3 +284,47 @@ export const importMockDataToStorage = (count = 50): void => {
   localStorage.setItem('root', JSON.stringify(data));
   console.log(`已导入 ${count} 条文件夹数据到 localStorage`);
 };
+
+/**
+ * 导出数据为 JSON 文件
+ */
+export const exportDataToJSON = (): void => {
+  const root = localStorage.getItem('root');
+  if (!root) {
+    console.warn('没有找到可导出的数据');
+    return;
+  }
+
+  const data = JSON.parse(root);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `song-learning-backup-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  console.log('数据导出成功');
+};
+
+/**
+ * 从 JSON 文件导入数据
+ * @param jsonString - JSON 字符串
+ * @returns 是否导入成功
+ */
+export const importDataFromJSON = (jsonString: string): boolean => {
+  try {
+    const data = JSON.parse(jsonString);
+    if (data.folders && Array.isArray(data.folders.folders)) {
+      localStorage.setItem('root', JSON.stringify(data));
+      console.log('数据导入成功');
+      return true;
+    }
+    console.error('JSON 格式不正确');
+    return false;
+  } catch (error) {
+    console.error('JSON 解析失败:', error);
+    return false;
+  }
+};

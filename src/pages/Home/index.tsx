@@ -5,6 +5,7 @@ import { FolderCard, FolderDrawer, FolderSearch, FolderEditControls, CreateFolde
 import { setFoldersInfo } from '@/store/slices/folders/slice';
 import { selectFolders, type IFolder } from '@/store';
 import { generateMockFolders, importMockDataToStorage } from '@/utils/mockData';
+import { DataTools } from '@/components/DataTools';
 import './index.less';
 
 export const Home = memo(() => {
@@ -113,6 +114,7 @@ export const Home = memo(() => {
       </div>
       <FolderDrawer />
       <CreateFolderDrawer open={isCreateDrawerOpen} onClose={() => setIsCreateDrawerOpen(false)} />
+      <DataTools />
     </div>
   );
 });
