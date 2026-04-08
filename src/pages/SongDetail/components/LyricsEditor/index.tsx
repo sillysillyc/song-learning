@@ -275,29 +275,78 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
       const segments = splitLyricText(lyricContent);
       const lyricMarks = marks.filter((m: ILyricMark) => m.lyricIndex === lyricIndex);
 
-      return segments.map((segment, charIndex) => {
-        // 检查这个字符是否属于某个标记
-        const mark = lyricMarks.find(
-          (m) => charIndex >= m.startOffset && charIndex < m.startOffset + m.length,
-        );
-
-        const bgColor = mark ? getMarkBackgroundColor(mark.color) : undefined;
-        const symbol = mark?.symbol.type === 'emoji' || mark?.symbol.type === 'text' ? mark.symbol.value : null;
-        const shapeClass = mark ? `mark-shape-${mark.shape}` : '';
-        const hasSymbolClass = symbol ? 'has-symbol' : '';
-
-        return (
+      if (lyricMarks.length === 0) {
+        // 没有标记，直接渲染所有字符
+        return segments.map((segment, charIndex) => (
           <span
             key={`${lyricIndex}-${charIndex}`}
-            className={`lyric-char ${mark ? 'marked' : ''} ${shapeClass} ${hasSymbolClass} ${isEditMode ? 'editable' : ''}`}
-            style={{ '--mark-bg-color': bgColor } as React.CSSProperties}
-            data-symbol={symbol || ''}
-            onClick={() => mark && handleMarkClick(mark)}
+            className={`lyric-char ${isEditMode ? 'editable' : ''}`}
           >
             {segment.text}
           </span>
+        ));
+      }
+
+      // 有标记，需要分段渲染：标记文本 + 普通文本
+      const elements: React.ReactNode[] = [];
+      let currentPos = 0;
+
+      // 按 startOffset 排序标记
+      const sortedMarks = [...lyricMarks].sort((a, b) => a.startOffset - b.startOffset);
+
+      sortedMarks.forEach((mark) => {
+        // 渲染标记前的普通文本
+        if (mark.startOffset > currentPos) {
+          for (let i = currentPos; i < mark.startOffset; i++) {
+            elements.push(
+              <span
+                key={`${lyricIndex}-text-${i}`}
+                className={`lyric-char ${isEditMode ? 'editable' : ''}`}
+              >
+                {segments[i]?.text || ''}
+              </span>,
+            );
+          }
+        }
+
+        // 渲染标记文本
+        const markedText = lyricContent.substring(mark.startOffset, mark.startOffset + mark.length);
+        const bgColor = getMarkBackgroundColor(mark.color);
+        const symbol = mark.symbol.type === 'emoji' || mark.symbol.type === 'text' ? mark.symbol.value : null;
+        const shapeClass = `mark-shape-${mark.shape}`;
+        const hasSymbolClass = symbol ? 'has-symbol' : '';
+
+        elements.push(
+          <span
+            key={`${lyricIndex}-mark-${mark.id}`}
+            className={`lyric-char marked ${shapeClass} ${hasSymbolClass} ${isEditMode ? 'editable' : ''}`}
+            style={{ '--mark-bg-color': bgColor } as React.CSSProperties}
+            data-symbol={symbol || ''}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMarkClick(mark);
+            }}
+          >
+            {markedText}
+          </span>,
         );
+
+        currentPos = mark.startOffset + mark.length;
       });
+
+      // 渲染剩余的普通文本
+      for (let i = currentPos; i < segments.length; i++) {
+        elements.push(
+          <span
+            key={`${lyricIndex}-text-${i}`}
+            className={`lyric-char ${isEditMode ? 'editable' : ''}`}
+          >
+            {segments[i]?.text || ''}
+          </span>,
+        );
+      }
+
+      return elements;
     },
     [marks, isEditMode, handleMarkClick],
   );

@@ -58,16 +58,12 @@
           }
         }
 
-        // 选中状态 - 使用 ::selection 伪元素
-        &.selected {
-          background-color: #1677ff;
-          color: #fff;
-        }
-
-        // 已有标记状态 - 基础样式
+        // 标记整体容器 - 使用 inline-block 以便应用样式
         &.marked {
+          display: inline-block;
           cursor: pointer;
           transition: all 0.15s;
+          position: relative;
 
           &:hover {
             filter: brightness(0.95);
@@ -78,12 +74,14 @@
         &.mark-shape-default {
           background-color: var(--mark-bg-color);
           color: #fff;
+          border-radius: 2px;
         }
 
         // 标记形状：方形（同默认）
         &.mark-shape-square {
           background-color: var(--mark-bg-color);
           color: #fff;
+          border-radius: 2px;
         }
 
         // 标记形状：圆形
@@ -100,11 +98,12 @@
         &.mark-shape-underline {
           background-color: transparent !important;
           color: inherit;
-          border-bottom: 2px solid var(--mark-bg-color);
-          padding-bottom: 2px;
+          border-bottom: 3px solid var(--mark-bg-color);
+          padding-bottom: 1px;
+          line-height: 1.8;
 
           &:hover {
-            border-bottom-width: 3px;
+            border-bottom-width: 4px;
             filter: none;
           }
         }
@@ -122,15 +121,16 @@
             padding: 1px 2px;
             margin-top: 2px;
             white-space: nowrap;
-          }
-
-          // 下划线标记的符号显示在下方
-          &.mark-shape-underline::after {
             position: absolute;
-            bottom: -14px;
+            bottom: -16px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
+          }
+
+          // 下划线标记的符号显示在下方更远
+          &.mark-shape-underline::after {
+            bottom: -20px;
           }
         }
 
