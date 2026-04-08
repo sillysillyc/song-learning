@@ -5,9 +5,76 @@
     margin-top: 16px;
   }
 
-  // 查看模式
-  .view-mode {
-    font-size: 16px;
+  // 歌词容器
+  .lyrics-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  // 歌词行
+  .lyric-line {
+    display: flex;
+    align-items: flex-start;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background-color: transparent;
+    transition: background-color 0.3s;
+
+    .lyric-index {
+      color: #999;
+      margin-right: 8px;
+      user-select: none;
+      font-family: monospace;
+      flex-shrink: 0;
+    }
+
+    .lyric-chars {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      flex: 1;
+      font-size: 16px;
+      line-height: 1.8;
+
+      // 单个字符/单词
+      .lyric-char {
+        padding: 2px 4px;
+        border-radius: 4px;
+        cursor: default;
+        transition: all 0.2s;
+        display: inline-block;
+        min-width: 20px;
+        text-align: center;
+
+        // 编辑模式下可点击
+        &.editable {
+          cursor: pointer;
+
+          &:hover {
+            background-color: #e6f4ff;
+          }
+        }
+
+        // 选中状态
+        &.selected {
+          background-color: #1677ff;
+          color: #fff;
+        }
+
+        // 已有标记状态
+        &.marked {
+          background-color: #1677ff;
+          color: #fff;
+          cursor: pointer;
+
+          &:hover {
+            filter: brightness(1.1);
+          }
+        }
+      }
+    }
   }
 
   // 编辑模式：左右分栏布局
@@ -24,22 +91,27 @@
       overflow-y: auto;
       padding-right: 16px;
 
-      .lyric-item {
-        padding: 8px 12px;
-        border-radius: 8px;
+      .lyric-line {
         background-color: #f5f5f5;
-        cursor: crosshair;
-        transition: background-color 0.3s;
-        margin-bottom: 8px;
+        cursor: pointer;
 
         &:hover {
           background-color: #e6e6e6;
         }
 
-        .lyric-index {
-          color: #999;
-          margin-right: 8px;
-          user-select: none;
+        .lyric-chars {
+          .lyric-char {
+            &.editable {
+              &:hover {
+                background-color: #d6e4ff;
+              }
+
+              &.selected {
+                background-color: #1677ff;
+                color: #fff;
+              }
+            }
+          }
         }
       }
 
@@ -108,51 +180,6 @@
           margin: 0;
         }
       }
-    }
-  }
-
-  // 歌词列表通用样式
-  .lyrics-list {
-    font-size: 16px;
-
-    .lyric-item {
-      padding: 8px 12px;
-      border-radius: 8px;
-      background-color: transparent;
-      cursor: default;
-      transition: background-color 0.3s;
-
-      &.edit-mode {
-        background-color: #f5f5f5;
-        cursor: crosshair;
-
-        &:hover {
-          background-color: #e6e6e6;
-        }
-      }
-
-      .lyric-index {
-        color: #999;
-        margin-right: 8px;
-        user-select: none;
-      }
-    }
-  }
-
-  // 编辑面板（旧版，保留兼容性）
-  .edit-panel {
-    margin-top: 16px;
-
-    .selected-text {
-      color: #1677ff;
-    }
-
-    .note-input {
-      margin-top: 8px;
-    }
-
-    .action-buttons {
-      margin-top: 16px;
     }
   }
 
