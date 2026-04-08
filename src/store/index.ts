@@ -1,3 +1,3 @@
 export * from './slices'
 export * from './store';
-export type * from './types';
+export type * from './slices/folders/types';

@@ -1,50 +1,65 @@
 /**
- * 标记的形状类型
+ * 标记类型 - 用于区分不同的渲染方式
  */
-export type BadgeShape = 'default' | 'square' | 'circle' | 'underline';
+export type MarkType = 'highlight' | 'underline' | 'symbol' | 'text' | 'circle';
 
 /**
- * 标记的颜色类型（支持预设和自定义）
+ * 标记的样式配置
  */
-export interface BadgeColor {
-  type: 'preset' | 'custom';
-  value: string; // preset: 'blue' | 'red' | 'green' 等，custom: 十六进制颜色
+export interface MarkStyle {
+  /** 背景颜色或主颜色 */
+  color: string;
+  /** 文字颜色 */
+  textColor?: string;
+  /** 边框颜色 */
+  borderColor?: string;
+  /** 自定义类名 */
+  className?: string;
 }
 
 /**
- * 标记的符号/图标
+ * 标记的内容配置 - 根据不同 type 显示不同内容
  */
-export interface BadgeSymbol {
-  type: 'none' | 'emoji' | 'icon' | 'text';
-  value: string; // emoji: '🎵', icon: 'StarOutlined', text: 自定义文字
+export interface MarkContent {
+  /** 显示的文字内容，为空则显示原文本 */
+  text?: string;
+  /** 显示的图标/emoji */
+  icon?: string;
+  /** 额外的备注信息 */
+  note?: string;
 }
 
 /**
- * 歌词标记 - PRD 核心功能
+ * 歌词标记 - 基于 type/tag 的设计
  */
 export interface ILyricMark {
+  /** 唯一标识 */
   id: string;
-  /** 标记关联的歌词索引 */
-  lyricIndex: number;
+  /** 标记关联的歌词行 ID（而非索引） */
+  lyricId: string;
   /** 标记起始字符位置 */
   startOffset: number;
   /** 标记长度（字符数） */
   length: number;
-  /** 标记颜色 */
-  color: BadgeColor;
-  /** 标记形状 */
-  shape: BadgeShape;
-  /** 标记符号/图标 */
-  symbol: BadgeSymbol;
-  /** 用户备注 */
-  note?: string;
+  /** 创建时选中的原始文本，用于校验和冲突检测 */
+  originalText?: string;
+  /** 标记类型，决定渲染方式 */
+  type: MarkType;
+  /** 自定义标签，可用于业务分类（如：合成拍、重点、难点等） */
+  tag?: string;
+  /** 样式配置 */
+  style: MarkStyle;
+  /** 内容配置 */
+  content: MarkContent;
   /** 创建时间 */
-  createTime: string;
+  createTime: number;
   /** 更新时间 */
-  updateTime: string;
+  updateTime: number;
 }
 
 export interface ILyric {
+  /** 歌词行唯一标识 */
+  id: string;
   content: string;
   /**
    * 这句歌词的时间
@@ -59,8 +74,8 @@ export interface ISong {
   singer: string;
   album: string;
   duration: string;
-  createTime: string;
-  updateTime: string;
+  createTime: number;
+  updateTime: number;
   lyrics: ILyric[];
   /** 歌词标记列表 */
   marks: ILyricMark[];

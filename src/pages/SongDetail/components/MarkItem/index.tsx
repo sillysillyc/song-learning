@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Popover, Button, Space, Typography } from 'antd';
 import { CloseOutlined, EditOutlined } from '@ant-design/icons';
 import type { ILyricMark } from '@/store';
-import { getMarkBackgroundColor } from '@/utils/markUtils';
+import { getMarkStyle } from '@/utils/markUtils';
 import './index.less';
 
 export interface IMarkItemProps {
@@ -16,59 +16,25 @@ export interface IMarkItemProps {
 export const MarkItem = memo((props: IMarkItemProps) => {
   const { mark, selectedText, onClick, onDelete, onEdit } = props;
 
-  const bgColor = getMarkBackgroundColor(mark.color);
+  const markStyle = getMarkStyle(mark.type, mark.style);
 
-  const getShapeClass = () => {
-    if (mark.shape === 'circle') return 'circle';
-    if (mark.shape === 'square') return 'square';
-    if (mark.shape === 'underline') return 'underline';
-    return '';
-  };
-
-  // 渲染符号
-  const renderSymbol = () => {
-    if (mark.symbol.type === 'emoji') {
-      return mark.symbol.value;
-    } else if (mark.symbol.type === 'text') {
-      return mark.symbol.value;
+  // 渲染显示的内容
+  const renderContent = () => {
+    if (mark.content?.text) {
+      return mark.content.text;
     }
-    return null;
+    if (mark.content?.icon) {
+      return mark.content.icon;
+    }
+    return selectedText;
   };
-
-  // 下划线标记特殊渲染
-  if (mark.shape === 'underline') {
-    return (
-      <Popover content={popoverContent} title="标记详情" trigger="click" placement="top">
-        <span
-          className="mark-item underline"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick?.();
-          }}
-        >
-          {selectedText}
-        </span>
-      </Popover>
-    );
-  }
-
-  const markContent = (
-    <div
-      className={`mark-item ${getShapeClass()}`}
-      style={{ backgroundColor: bgColor }}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick?.();
-      }}
-    >
-      <span className="symbol-text">{renderSymbol() || selectedText}</span>
-    </div>
-  );
 
   // Popover 显示的详情内容
   const popoverContent = (
     <div style={{ maxWidth: 200 }}>
-      {mark.note && <Typography.Paragraph style={{ marginBottom: 8 }}>{mark.note}</Typography.Paragraph>}
+      {mark.content?.note && (
+        <Typography.Paragraph style={{ marginBottom: 8 }}>{mark.content.note}</Typography.Paragraph>
+      )}
       <Space>
         <Button type="primary" icon={<EditOutlined />} size="small" onClick={onEdit}>
           编辑
@@ -82,7 +48,16 @@ export const MarkItem = memo((props: IMarkItemProps) => {
 
   return (
     <Popover content={popoverContent} title="标记详情" trigger="click" placement="top">
-      {markContent}
+      <span
+        className={`mark-item mark-type-${mark.type}`}
+        style={markStyle}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.();
+        }}
+      >
+        {renderContent()}
+      </span>
     </Popover>
   );
 });

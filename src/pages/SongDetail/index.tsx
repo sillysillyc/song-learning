@@ -1,6 +1,6 @@
 import { memo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Affix, Button, Card, Space, Modal, Form, Input, message } from 'antd';
+import { Button, Card, Space, Modal, Form, Input, message } from 'antd';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentFolder, selectCurrentSong, setCurrentSong, updateFolderInfo } from '@/store';
 import type { ISong } from '@/store';
@@ -158,57 +158,54 @@ export const SongDetail = memo(() => {
   }
 
   return (
-    <Card
-      className="song-detail-page"
-      title={
-        isEditMode ? (
-          <Form form={form} layout="inline" size="small">
-            <Form.Item name="name" label="歌曲名称" rules={[{ required: true, message: '请输入歌曲名称' }]}>
-              <Input placeholder="必填" style={{ width: 200 }} />
-            </Form.Item>
-            <Form.Item name="singer" label="歌手">
-              <Input placeholder="选填" style={{ width: 150 }} />
-            </Form.Item>
-            <Form.Item name="album" label="专辑">
-              <Input placeholder="选填" style={{ width: 150 }} />
-            </Form.Item>
-            <Form.Item name="duration" label="时长">
-              <Input placeholder="选填" style={{ width: 100 }} />
-            </Form.Item>
-          </Form>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div>
-              <strong>歌曲名称：</strong> {currentSong.name}
+    <Card className="song-detail-page">
+      {/* 固定 Header */}
+      <div className="song-detail-header">
+        <div className="song-info">
+          {isEditMode ? (
+            <Form form={form} layout="inline" size="small">
+              <Form.Item name="name" label="歌曲名称" rules={[{ required: true, message: '请输入歌曲名称' }]}>
+                <Input placeholder="必填" style={{ width: 200 }} />
+              </Form.Item>
+              <Form.Item name="singer" label="歌手">
+                <Input placeholder="选填" style={{ width: 150 }} />
+              </Form.Item>
+              <Form.Item name="album" label="专辑">
+                <Input placeholder="选填" style={{ width: 150 }} />
+              </Form.Item>
+              <Form.Item name="duration" label="时长">
+                <Input placeholder="选填" style={{ width: 100 }} />
+              </Form.Item>
+            </Form>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div>
+                <strong>歌曲名称：</strong> {currentSong.name}
+              </div>
+              {currentSong.singer && (
+                <div>
+                  <strong>歌手：</strong> {currentSong.singer}
+                </div>
+              )}
+              {currentSong.album && (
+                <div>
+                  <strong>专辑：</strong> {currentSong.album}
+                </div>
+              )}
+              {currentSong.duration && (
+                <div>
+                  <strong>时长：</strong> {currentSong.duration}
+                </div>
+              )}
+              <div style={{ fontSize: 12, color: '#999' }}>
+                创建时间：{dayjs(Number(currentSong.createTime)).format('YYYY-MM-DD HH:mm:ss')}
+                {' | '}
+                更新时间：{dayjs(Number(currentSong.updateTime)).format('YYYY-MM-DD HH:mm:ss')}
+              </div>
             </div>
-            {currentSong.singer && (
-              <div>
-                <strong>歌手：</strong> {currentSong.singer}
-              </div>
-            )}
-            {currentSong.album && (
-              <div>
-                <strong>专辑：</strong> {currentSong.album}
-              </div>
-            )}
-            {currentSong.duration && (
-              <div>
-                <strong>时长：</strong> {currentSong.duration}
-              </div>
-            )}
-            <div style={{ fontSize: 12, color: '#999' }}>
-              创建时间：{dayjs(Number(currentSong.createTime)).format('YYYY-MM-DD HH:mm:ss')}
-              {' | '}
-              更新时间：{dayjs(Number(currentSong.updateTime)).format('YYYY-MM-DD HH:mm:ss')}
-            </div>
-          </div>
-        )
-      }
-      extra={
-        <Affix
-          offsetTop={60}
-          target={(): HTMLElement | null => document.querySelector<HTMLElement>('.ant-layout-content')}
-        >
+          )}
+        </div>
+        <div className="header-actions">
           <Space>
             {isEditMode ? (
               <>
@@ -227,10 +224,13 @@ export const SongDetail = memo(() => {
               </>
             )}
           </Space>
-        </Affix>
-      }
-    >
-      <LyricsEditor lyrics={currentSong.lyrics || []} />
+        </div>
+      </div>
+
+      {/* 可滚动的歌词内容 */}
+      <div className="song-detail-content">
+        <LyricsEditor lyrics={currentSong.lyrics || []} />
+      </div>
 
       {/* 歌词导入弹窗 */}
       <Modal

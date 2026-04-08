@@ -1,60 +1,85 @@
 import { memo, useState } from 'react';
-import { ColorPicker, Radio, Select, Space, Card, Input, Tabs } from 'antd';
-import type { BadgeColor, BadgeShape, BadgeSymbol } from '@/store';
-import { PRESET_COLORS, PRESET_SYMBOLS } from '@/utils/markUtils';
+import { ColorPicker, Radio, Select, Space, Card, Input } from 'antd';
+import type { MarkType, MarkStyle, MarkContent } from '@/store';
+import { PRESET_COLORS, PRESET_ICONS, MARK_TYPES, DEFAULT_MARK_STYLES } from '@/utils/markUtils';
 import type { Color } from 'antd/es/color-picker';
 import './index.less';
 
 export interface IBadgePickerProps {
   value?: {
-    color: BadgeColor;
-    shape: BadgeShape;
-    symbol: BadgeSymbol;
+    type: MarkType;
+    style: MarkStyle;
+    content: MarkContent;
   };
-  onChange?: (value: { color: BadgeColor; shape: BadgeShape; symbol: BadgeSymbol }) => void;
+  onChange?: (value: { type: MarkType; style: MarkStyle; content: MarkContent }) => void;
 }
 
 export const BadgePicker = memo((props: IBadgePickerProps) => {
   const { value, onChange } = props;
 
-  const [selectedColor, setSelectedColor] = useState<BadgeColor>(value?.color || { type: 'preset', value: 'blue' });
-  const [selectedShape, setSelectedShape] = useState<BadgeShape>(value?.shape || 'default');
-  const [selectedSymbol, setSelectedSymbol] = useState<BadgeSymbol>(value?.symbol || { type: 'none', value: '' });
-  const [customText, setCustomText] = useState('');
+  const currentType = value?.type || 'highlight';
+  const currentColor = value?.style?.color || DEFAULT_MARK_STYLES[currentType].color;
+  const [selectedType, setSelectedType] = useState<MarkType>(currentType);
+  const [selectedColor, setSelectedColor] = useState<string>(currentColor);
+  const [customText, setCustomText] = useState(value?.content?.text || '');
+  const [selectedIcon, setSelectedIcon] = useState(value?.content?.icon || '');
 
-  const getShapeClass = () => {
-    if (selectedShape === 'circle') return 'circle';
-    if (selectedShape === 'square') return 'square';
-    return '';
+  const handleTypeChange = (type: MarkType) => {
+    setSelectedType(type);
+    const baseStyle = DEFAULT_MARK_STYLES[type];
+    onChange?.({
+      type,
+      style: { ...baseStyle, color: selectedColor },
+      content: { ...value?.content },
+    });
   };
 
-  const handleColorChange = (newColor: BadgeColor) => {
-    setSelectedColor(newColor);
-    onChange?.({ color: newColor, shape: selectedShape, symbol: selectedSymbol });
-  };
-
-  const handleShapeChange = (newShape: BadgeShape) => {
-    setSelectedShape(newShape);
-    onChange?.({ color: selectedColor, shape: newShape, symbol: selectedSymbol });
-  };
-
-  const handleSymbolChange = (newSymbol: BadgeSymbol) => {
-    setSelectedSymbol(newSymbol);
-    onChange?.({ color: selectedColor, shape: selectedShape, symbol: newSymbol });
+  const handleColorChange = (color: string) => {
+    setSelectedColor(color);
+    onChange?.({
+      type: selectedType,
+      style: { ...value?.style, color },
+      content: { ...value?.content },
+    });
   };
 
   const handleCustomTextChange = (text: string) => {
     setCustomText(text);
-    if (text.trim()) {
-      handleSymbolChange({ type: 'text', value: text.trim() });
-    } else {
-      handleSymbolChange({ type: 'none', value: '' });
-    }
+    onChange?.({
+      type: 'text',
+      style: value?.style || DEFAULT_MARK_STYLES.text,
+      content: { ...(value?.content || {}), text: text.trim() },
+    });
+  };
+
+  const handleIconChange = (icon: string) => {
+    setSelectedIcon(icon);
+    onChange?.({
+      type: 'symbol',
+      style: value?.style || DEFAULT_MARK_STYLES.symbol,
+      content: { ...(value?.content || {}), icon },
+    });
   };
 
   return (
     <Card size="small" title="标记样式" className="badge-picker">
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        {/* 标记类型选择 */}
+        <div className="type-section">
+          <div className="section-title">标记类型</div>
+          <Radio.Group
+            value={selectedType}
+            onChange={(e) => handleTypeChange(e.target.value as MarkType)}
+            buttonStyle="solid"
+          >
+            {MARK_TYPES.map((t) => (
+              <Radio.Button key={t.value} value={t.value} title={t.description}>
+                {t.label}
+              </Radio.Button>
+            ))}
+          </Radio.Group>
+        </div>
+
         {/* 颜色选择 */}
         <div className="color-section">
           <div className="section-title">颜色</div>
@@ -62,82 +87,73 @@ export const BadgePicker = memo((props: IBadgePickerProps) => {
             {PRESET_COLORS.map((c) => (
               <div
                 key={c.value}
-                className={`color-option ${getShapeClass()} ${selectedColor.value === c.value ? 'selected' : ''}`}
-                onClick={() => handleColorChange({ type: 'preset', value: c.value })}
+                className={`color-option ${selectedColor === c.value ? 'selected' : ''}`}
+                onClick={() => handleColorChange(c.value)}
                 style={{ backgroundColor: c.value }}
               >
-                {selectedColor.value === c.value && <span className="check-mark">✓</span>}
+                {selectedColor === c.value && <span className="check-mark">✓</span>}
               </div>
             ))}
             <ColorPicker
-              value={selectedColor.type === 'custom' ? selectedColor.value : '#1677ff'}
+              value={selectedColor}
               onChange={(color: Color) => {
-                handleColorChange({ type: 'custom', value: color.toHexString() });
+                handleColorChange(color.toHexString());
               }}
               showText
             >
-              <div
-                className={`color-option custom-color-picker ${getShapeClass()} ${selectedColor.type === 'custom' ? 'selected' : ''}`}
-              >
-                {selectedColor.type === 'custom' && <span className="check-mark">✓</span>}
+              <div className={`color-option custom-color-picker ${selectedColor.startsWith('#') && !PRESET_COLORS.some(c => c.value === selectedColor) ? 'selected' : ''}`}>
+                自定义
               </div>
             </ColorPicker>
           </div>
         </div>
 
-        {/* 形状选择 */}
-        <div className="shape-section">
-          <div className="section-title">形状</div>
-          <Radio.Group value={selectedShape} onChange={(e) => handleShapeChange(e.target.value as BadgeShape)}>
-            <Radio.Button value="default">默认</Radio.Button>
-            <Radio.Button value="square">方形</Radio.Button>
-            <Radio.Button value="circle">圆形</Radio.Button>
-            <Radio.Button value="underline">下划线</Radio.Button>
-          </Radio.Group>
-        </div>
+        {/* 符号/文本选择 - 根据类型显示 */}
+        {selectedType === 'symbol' && (
+          <div className="symbol-section">
+            <div className="section-title">图标</div>
+            <Select
+              className="symbol-select"
+              value={selectedIcon || 'none'}
+              onChange={(val) => handleIconChange(val === 'none' ? '' : val)}
+              options={[
+                { label: '无', value: 'none' },
+                ...PRESET_ICONS.filter(i => i.value).map((i) => ({
+                  label: `${i.label} ${i.value}`,
+                  value: i.value,
+                })),
+              ]}
+            />
+          </div>
+        )}
 
-        {/* 符号选择 - 使用 Tabs 切换预设和自定义 */}
-        <div className="symbol-section">
-          <div className="section-title">符号</div>
-          <Tabs
-            size="small"
-            tabBarStyle={{ marginBottom: 12 }}
-            items={[
-              {
-                key: 'preset',
-                label: '预设符号',
-                children: (
-                  <Select
-                    className="symbol-select"
-                    value={selectedSymbol.type === 'none' ? 'none' : selectedSymbol.value}
-                    onChange={(val) => {
-                      if (val === 'none') {
-                        handleSymbolChange({ type: 'none', value: '' });
-                      } else {
-                        handleSymbolChange({ type: 'emoji', value: val });
-                      }
-                    }}
-                    options={PRESET_SYMBOLS.map((s) => ({
-                      label: `${s.label} ${s.value.type === 'emoji' ? s.value.value : ''}`,
-                      value: s.value.type === 'emoji' ? s.value.value : 'none',
-                    }))}
-                  />
-                ),
-              },
-              {
-                key: 'custom',
-                label: '自定义文本',
-                children: (
-                  <Input
-                    value={customText}
-                    onChange={(e) => handleCustomTextChange(e.target.value)}
-                    placeholder="输入自定义符号文本"
-                    maxLength={10}
-                    showCount
-                  />
-                ),
-              },
-            ]}
+        {selectedType === 'text' && (
+          <div className="text-section">
+            <div className="section-title">自定义文本</div>
+            <Input
+              value={customText}
+              onChange={(e) => handleCustomTextChange(e.target.value)}
+              placeholder="输入自定义标记文本"
+              maxLength={10}
+              showCount
+            />
+          </div>
+        )}
+
+        {/* 备注 */}
+        <div className="note-section">
+          <div className="section-title">备注</div>
+          <Input.TextArea
+            value={value?.content?.note || ''}
+            onChange={(e) => {
+              onChange?.({
+                type: selectedType,
+                style: value?.style || DEFAULT_MARK_STYLES[selectedType],
+                content: { ...(value?.content || {}), note: e.target.value },
+              });
+            }}
+            placeholder="可选：添加备注说明"
+            rows={2}
           />
         </div>
       </Space>

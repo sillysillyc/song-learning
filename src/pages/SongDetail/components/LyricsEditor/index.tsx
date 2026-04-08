@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useRef, useEffect } from 'react';
-import { Typography, Space, Button, Modal, Input, Divider } from 'antd';
+import { Typography, Space, Button, Modal, Divider } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   addLyricMark,
@@ -9,8 +9,8 @@ import {
   type ILyricMark,
 } from '@/store';
 import { BadgePicker } from '../BadgePicker';
-import { createLyricMark, splitLyricText } from '@/utils/markUtils';
-import type { BadgeColor, BadgeShape, BadgeSymbol } from '@/store';
+import { createLyricMark, splitLyricText, getMarkStyle } from '@/utils/markUtils';
+import type { MarkType, MarkStyle, MarkContent } from '@/store';
 import './index.less';
 
 const { Title } = Typography;
@@ -23,7 +23,7 @@ interface EditingMarkState {
   isEditing: boolean;
   markId?: string;
   selectedText: string;
-  lyricIndex: number;
+  lyricId: string;
   startOffset: number;
   length: number;
 }
@@ -32,6 +32,7 @@ interface EditingMarkState {
 const getSelectionInLine = (
   selection: Selection,
   charsContainer: Element,
+  lyricText: string, // 传入原始歌词文本用于精确计算
 ): { start: number; end: number; text: string } | null => {
   if (!selection || selection.rangeCount === 0) return null;
 
@@ -41,41 +42,63 @@ const getSelectionInLine = (
   // 检查选择是否在此容器内
   if (!charsContainer.contains(range.commonAncestorContainer)) return null;
 
-  // 获取容器内所有 span.lyric-char 元素
-  const charSpans = Array.from(charsContainer.querySelectorAll('.lyric-char'));
-  if (charSpans.length === 0) return null;
+  const selectedText = range.toString();
+  if (!selectedText) return null;
 
-  // 找到选区起始和结束所在的 span 索引
-  let startCharIndex = -1;
-  let endCharIndex = -1;
+  // 使用更可靠的方法：在原始文本中查找选中文字的起始位置
+  // 首先获取选区开始和结束的节点
+  const startContainer = range.startContainer;
+  const endContainer = range.endContainer;
 
-  // 遍历所有字符 span，检查哪个在选区内
-  charSpans.forEach((span, index) => {
-    const textNode = span.firstChild;
-    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return;
+  // 找到 startContainer 在整个歌词文本中的位置
+  let startOffset = 0;
+  let endOffset = 0;
 
-    // 检查此 span 是否被部分或完全选中
-    const nodeRange = document.createRange();
-    nodeRange.selectNodeContents(span);
+  // 方法：遍历所有文本节点，累积计算位置
+  const textNodes: { node: Text; start: number; end: number }[] = [];
+  let currentPos = 0;
 
-    // 检查 span 是否在选区内
-    const comparison = range.compareBoundaryPoints(Range.START_TO_END, nodeRange);
-    const comparison2 = range.compareBoundaryPoints(Range.END_TO_START, nodeRange);
-
-    // 如果 span 与选区有重叠
-    if (comparison >= 0 && comparison2 <= 0) {
-      if (startCharIndex === -1) startCharIndex = index;
-      endCharIndex = index;
+  const collectTextNodes = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || '';
+      textNodes.push({
+        node: node as Text,
+        start: currentPos,
+        end: currentPos + text.length,
+      });
+      currentPos += text.length;
+    } else {
+      node.childNodes.forEach((child) => collectTextNodes(child));
     }
-  });
+  };
 
-  if (startCharIndex === -1 || endCharIndex === -1) return null;
+  collectTextNodes(charsContainer);
 
-  const text = range.toString();
+  // 找到选区起始位置
+  for (const { node, start, end } of textNodes) {
+    if (node === startContainer) {
+      startOffset = start + range.startOffset;
+    }
+    if (node === endContainer) {
+      endOffset = end - (node.length - range.endOffset);
+    }
+  }
+
+  // 如果找不到精确位置，尝试在原始文本中搜索选中的文字
+  if (startOffset === 0 && endOffset === 0) {
+    const searchStart = lyricText.indexOf(selectedText);
+    if (searchStart !== -1) {
+      startOffset = searchStart;
+      endOffset = searchStart + selectedText.length;
+    }
+  }
+
+  if (startOffset >= endOffset) return null;
+
   return {
-    start: startCharIndex,
-    end: endCharIndex + 1,
-    text,
+    start: startOffset,
+    end: endOffset,
+    text: selectedText,
   };
 };
 
@@ -87,16 +110,22 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingMark, setEditingMark] = useState<EditingMarkState | null>(null);
+  // 保存原始标记数据用于取消时恢复
+  const [originalMarkData, setOriginalMarkData] = useState<{
+    type: MarkType;
+    style: MarkStyle;
+    content: MarkContent;
+  } | null>(null);
+
   const [selectedMarkStyle, setSelectedMarkStyle] = useState<{
-    color: BadgeColor;
-    shape: BadgeShape;
-    symbol: BadgeSymbol;
+    type: MarkType;
+    style: MarkStyle;
+    content: MarkContent;
   }>({
-    color: { type: 'preset', value: 'blue' },
-    shape: 'default',
-    symbol: { type: 'none', value: '' },
+    type: 'highlight',
+    style: { color: '#1677ff', textColor: '#ffffff' },
+    content: {},
   });
-  const [editingNote, setEditingNote] = useState('');
 
   const lyricsRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
@@ -119,8 +148,8 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
       lyricsRefs.current.forEach((ref, index) => {
         if (selectionInfo) return;
         const charsContainer = ref.querySelector('.lyric-chars');
-        if (!charsContainer) return;
-        const info = getSelectionInLine(selection, charsContainer);
+        if (!charsContainer || !lyrics[index]) return;
+        const info = getSelectionInLine(selection, charsContainer, lyrics[index].content);
         if (info) {
           lyricIndex = index;
           selectionInfo = info;
@@ -134,7 +163,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
       // 检查是否选择在已有标记范围内
       const hasExistingMark = marks.some(
         (mark: ILyricMark) =>
-          mark.lyricIndex === lyricIndex &&
+          mark.lyricId === `${lyricIndex}` &&
           ((start >= mark.startOffset && start < mark.startOffset + mark.length) ||
             (end > mark.startOffset && end <= mark.startOffset + mark.length) ||
             (start <= mark.startOffset && end >= mark.startOffset + mark.length)),
@@ -152,7 +181,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
       // 创建新的选择状态
       setEditingMark({
         isEditing: true,
-        lyricIndex,
+        lyricId: `${lyricIndex}`,
         selectedText: text,
         startOffset: start,
         length: end - start,
@@ -172,32 +201,38 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
         isEditing: true,
         markId: mark.id,
         selectedText: '',
-        lyricIndex: mark.lyricIndex,
+        lyricId: mark.lyricId,
         startOffset: mark.startOffset,
         length: mark.length,
       });
-      setSelectedMarkStyle({
-        color: mark.color,
-        shape: mark.shape,
-        symbol: mark.symbol,
+      // 保存原始数据用于取消时恢复
+      setOriginalMarkData({
+        type: mark.type,
+        style: mark.style,
+        content: mark.content,
       });
-      setEditingNote(mark.note || '');
+      setSelectedMarkStyle({
+        type: mark.type,
+        style: mark.style,
+        content: mark.content,
+      });
     },
     [isEditMode],
   );
 
-  // 保存标记
+  // 保存标记（新建）
   const handleSaveMark = () => {
     if (!editingMark) return;
 
     const newMark = createLyricMark(
-      editingMark.lyricIndex,
+      editingMark.lyricId,
       editingMark.startOffset,
       editingMark.length,
-      selectedMarkStyle.color,
-      selectedMarkStyle.shape,
-      selectedMarkStyle.symbol,
-      editingNote,
+      editingMark.selectedText,
+      selectedMarkStyle.type,
+      undefined, // tag
+      selectedMarkStyle.style,
+      selectedMarkStyle.content,
     );
 
     dispatch(addLyricMark({ mark: newMark }));
@@ -221,59 +256,56 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
     });
   };
 
-  // 更新标记
-  const handleUpdateMark = () => {
+  // 即时更新标记（修改即保存）
+  const handleUpdateMark = useCallback(() => {
     if (!editingMark || !editingMark.markId) return;
 
     dispatch(
       updateLyricMark({
         markId: editingMark.markId,
         mark: {
-          color: selectedMarkStyle.color,
-          shape: selectedMarkStyle.shape,
-          symbol: selectedMarkStyle.symbol,
-          note: editingNote,
-          updateTime: Date.now().toString(),
+          type: selectedMarkStyle.type,
+          style: selectedMarkStyle.style,
+          content: selectedMarkStyle.content,
+          updateTime: Date.now(),
         },
       }),
     );
+  }, [dispatch, editingMark, selectedMarkStyle]);
+
+  // 取消编辑并恢复原始数据
+  const handleCancelEdit = () => {
+    if (editingMark?.markId && originalMarkData) {
+      // 恢复原始数据（如果需要可以调用 update，但这里只是放弃编辑）
+      setSelectedMarkStyle(originalMarkData);
+    }
     resetEditingState();
   };
 
   // 重置编辑状态
   const resetEditingState = () => {
     setEditingMark(null);
+    setOriginalMarkData(null);
     setSelectedMarkStyle({
-      color: { type: 'preset', value: 'blue' },
-      shape: 'default',
-      symbol: { type: 'none', value: '' },
+      type: 'highlight',
+      style: { color: '#1677ff', textColor: '#ffffff' },
+      content: {},
     });
-    setEditingNote('');
   };
 
-  // 获取标记的背景颜色
-  const getMarkBackgroundColor = (color: BadgeColor): string => {
-    if (color.type === 'custom') {
-      return color.value;
+  // 即时保存标记变化（当用户修改标记样式时自动应用）
+  useEffect(() => {
+    if (editingMark?.markId && !editingMark.isEditing) {
+      handleUpdateMark();
     }
-    const colorMap: Record<string, string> = {
-      blue: '#1677ff',
-      red: '#ff4d4f',
-      green: '#52c41a',
-      orange: '#fa8c16',
-      purple: '#722ed1',
-      pink: '#eb2f96',
-      cyan: '#13c2c2',
-      gray: '#8c8c8c',
-    };
-    return colorMap[color.value] || '#1677ff';
-  };
+  }, [selectedMarkStyle]);
 
   // 渲染歌词中的标记（按字/单词展示）
   const renderLyricWithChars = useCallback(
     (lyricContent: string, lyricIndex: number) => {
       const segments = splitLyricText(lyricContent);
-      const lyricMarks = marks.filter((m: ILyricMark) => m.lyricIndex === lyricIndex);
+      const lyricId = `${lyricIndex}`;
+      const lyricMarks = marks.filter((m: ILyricMark) => m.lyricId === lyricId);
 
       if (lyricMarks.length === 0) {
         // 没有标记，直接渲染所有字符
@@ -311,25 +343,67 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
 
         // 渲染标记文本
         const markedText = lyricContent.substring(mark.startOffset, mark.startOffset + mark.length);
-        const bgColor = getMarkBackgroundColor(mark.color);
-        const symbol = mark.symbol.type === 'emoji' || mark.symbol.type === 'text' ? mark.symbol.value : null;
-        const shapeClass = `mark-shape-${mark.shape}`;
-        const hasSymbolClass = symbol ? 'has-symbol' : '';
+        const markStyle = getMarkStyle(mark.type, mark.style);
+        const showContent = mark.content?.text || mark.content?.icon;
+        const isCircleType = mark.type === 'circle';
+        const isSymbolType = mark.type === 'symbol' && mark.content?.icon;
 
-        elements.push(
-          <span
-            key={`${lyricIndex}-mark-${mark.id}`}
-            className={`lyric-char marked ${shapeClass} ${hasSymbolClass} ${isEditMode ? 'editable' : ''}`}
-            style={{ '--mark-bg-color': bgColor } as React.CSSProperties}
-            data-symbol={symbol || ''}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleMarkClick(mark);
-            }}
-          >
-            {markedText}
-          </span>,
-        );
+        // 圆形标记：每个字符独立圆形背景
+        if (isCircleType) {
+          for (let i = mark.startOffset; i < mark.startOffset + mark.length; i++) {
+            const charText = segments[i]?.text || '';
+            elements.push(
+              <span
+                key={`${lyricIndex}-mark-circle-${i}`}
+                className={`lyric-char marked mark-type-circle ${isEditMode ? 'editable' : ''}`}
+                style={markStyle}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMarkClick(mark);
+                }}
+              >
+                {charText}
+              </span>,
+            );
+          }
+        }
+        // 符号标记：每个字符下方显示符号
+        else if (isSymbolType) {
+          for (let i = mark.startOffset; i < mark.startOffset + mark.length; i++) {
+            const charText = segments[i]?.text || '';
+            elements.push(
+              <span
+                key={`${lyricIndex}-mark-symbol-${i}`}
+                className={`lyric-char marked mark-type-symbol ${isEditMode ? 'editable' : ''}`}
+                style={markStyle}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMarkClick(mark);
+                }}
+              >
+                {charText}
+                <span className="symbol-under">{mark.content!.icon}</span>
+              </span>,
+            );
+          }
+        }
+        // 其他标记类型：整体渲染
+        else {
+          elements.push(
+            <span
+              key={`${lyricIndex}-mark-${mark.id}`}
+              className={`lyric-char marked mark-type-${mark.type} ${isEditMode ? 'editable' : ''}`}
+              style={markStyle}
+              data-content={showContent || ''}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkClick(mark);
+              }}
+            >
+              {showContent || markedText}
+            </span>,
+          );
+        }
 
         currentPos = mark.startOffset + mark.length;
       });
@@ -402,28 +476,19 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
 
                 <BadgePicker
                   value={selectedMarkStyle}
-                  onChange={(value: { color: BadgeColor; shape: BadgeShape; symbol: BadgeSymbol }) =>
+                  onChange={(value: { type: MarkType; style: MarkStyle; content: MarkContent }) =>
                     setSelectedMarkStyle(value)
                   }
                 />
-
-                <div className="note-section">
-                  <div className="section-title">备注</div>
-                  <Input.TextArea
-                    value={editingNote}
-                    onChange={(e) => setEditingNote(e.target.value)}
-                    placeholder="可选：添加备注说明"
-                    rows={3}
-                  />
-                </div>
 
                 <Divider />
 
                 <Space className="action-buttons">
                   {editingMark.markId ? (
                     <>
-                      <Button type="primary" onClick={handleUpdateMark} block>
-                        更新标记
+                      <div className="auto-save-hint">修改已自动保存</div>
+                      <Button onClick={handleCancelEdit} block>
+                        取消编辑
                       </Button>
                       <Button danger onClick={() => handleDeleteMark(editingMark.markId!)} block>
                         删除标记
