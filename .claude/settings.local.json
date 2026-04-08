@@ -1,5 +1,12 @@
 {
   "permissions": {
-    "allow": ["*", "Bash(npx prettier:*)", "Bash(git commit:*)", "Bash(git push:*)"]
+    "allow": [
+      "*",
+      "Bash(*:*)",
+      "Bash(npx prettier:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git *:*)"
+    ]
   }
 }

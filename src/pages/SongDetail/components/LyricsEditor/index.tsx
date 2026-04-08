@@ -31,31 +31,52 @@ interface EditingMarkState {
 // 获取选中文字在歌词行中的位置（基于字符数）
 const getSelectionInLine = (
   selection: Selection,
-  lineElement: HTMLElement,
+  charsContainer: Element,
 ): { start: number; end: number; text: string } | null => {
   if (!selection || selection.rangeCount === 0) return null;
 
   const range = selection.getRangeAt(0);
   if (range.collapsed) return null;
 
-  // 检查选择是否在此行内
-  if (!lineElement.contains(range.commonAncestorContainer)) return null;
+  // 检查选择是否在此容器内
+  if (!charsContainer.contains(range.commonAncestorContainer)) return null;
 
-  // 获取行内纯文本内容（排除索引编号）
-  const charsContainer = lineElement.querySelector('.lyric-chars');
-  if (!charsContainer) return null;
+  // 获取容器内所有 span.lyric-char 元素
+  const charSpans = Array.from(charsContainer.querySelectorAll('.lyric-char'));
+  if (charSpans.length === 0) return null;
 
-  // 使用文本范围计算位置
-  const preRange = range.cloneRange();
-  preRange.selectNodeContents(charsContainer);
-  preRange.setEnd(range.startContainer, range.startOffset);
+  // 找到选区起始和结束所在的 span 索引
+  let startCharIndex = -1;
+  let endCharIndex = -1;
 
-  // 计算起始位置 - 统计字符数
-  const start = preRange.toString().length;
-  const end = start + range.toString().length;
+  // 遍历所有字符 span，检查哪个在选区内
+  charSpans.forEach((span, index) => {
+    const textNode = span.firstChild;
+    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return;
+
+    // 检查此 span 是否被部分或完全选中
+    const nodeRange = document.createRange();
+    nodeRange.selectNodeContents(span);
+
+    // 检查 span 是否在选区内
+    const comparison = range.compareBoundaryPoints(Range.START_TO_END, nodeRange);
+    const comparison2 = range.compareBoundaryPoints(Range.END_TO_START, nodeRange);
+
+    // 如果 span 与选区有重叠
+    if (comparison >= 0 && comparison2 <= 0) {
+      if (startCharIndex === -1) startCharIndex = index;
+      endCharIndex = index;
+    }
+  });
+
+  if (startCharIndex === -1 || endCharIndex === -1) return null;
+
   const text = range.toString();
-
-  return { start, end, text };
+  return {
+    start: startCharIndex,
+    end: endCharIndex + 1,
+    text,
+  };
 };
 
 export const LyricsEditor = memo((props: ILyricsEditorProps) => {
@@ -97,7 +118,9 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
 
       lyricsRefs.current.forEach((ref, index) => {
         if (selectionInfo) return;
-        const info = getSelectionInLine(selection, ref);
+        const charsContainer = ref.querySelector('.lyric-chars');
+        if (!charsContainer) return;
+        const info = getSelectionInLine(selection, charsContainer);
         if (info) {
           lyricIndex = index;
           selectionInfo = info;
