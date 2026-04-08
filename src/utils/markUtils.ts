@@ -118,10 +118,10 @@ export const getSelectionOffset = (
 };
 
 /**
- * 将歌词文本分割为单个字符或单词
- * 中文：每个字作为一个元素
- * 英文：每个单词作为一个元素
- * 标点符号：单独作为一个元素
+ * 将歌词文本分割为单个字符
+ * 每个字符作为独立元素，方便原生文本选择和索引计算
+ *
+ * 返回的每个 segment 对应原字符串中的一个字符位置
  */
 export const splitLyricText = (
   text: string,
@@ -129,8 +129,6 @@ export const splitLyricText = (
   if (!text) return [];
 
   const segments: { text: string; type: 'chinese' | 'english' | 'punctuation' | 'space' }[] = [];
-  let currentSegment = '';
-  let currentType: 'chinese' | 'english' | 'punctuation' | 'space' | null = null;
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
@@ -147,23 +145,7 @@ export const splitLyricText = (
       charType = 'punctuation';
     }
 
-    // 如果类型改变，保存当前段并开始新段
-    if (currentType !== null && charType !== currentType) {
-      if (currentSegment) {
-        segments.push({ text: currentSegment, type: currentType });
-      }
-      currentSegment = char;
-      currentType = charType;
-    } else {
-      // 类型相同，继续累积
-      currentSegment += char;
-      currentType = charType;
-    }
-  }
-
-  // 添加最后一个段
-  if (currentSegment) {
-    segments.push({ text: currentSegment, type: currentType! });
+    segments.push({ text: char, type: charType });
   }
 
   return segments;

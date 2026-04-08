@@ -28,7 +28,7 @@ interface EditingMarkState {
   length: number;
 }
 
-// 获取选中文字在歌词行中的位置
+// 获取选中文字在歌词行中的位置（基于字符数）
 const getSelectionInLine = (
   selection: Selection,
   lineElement: HTMLElement,
@@ -41,44 +41,21 @@ const getSelectionInLine = (
   // 检查选择是否在此行内
   if (!lineElement.contains(range.commonAncestorContainer)) return null;
 
-  // 获取行内所有文本节点
-  const textNodes: { node: Text; startIndex: number }[] = [];
-  let currentIndex = 0;
+  // 获取行内纯文本内容（排除索引编号）
+  const charsContainer = lineElement.querySelector('.lyric-chars');
+  if (!charsContainer) return null;
 
-  const walker = document.createTreeWalker(
-    lineElement,
-    NodeFilter.SHOW_TEXT,
-  );
+  // 使用文本范围计算位置
+  const preRange = range.cloneRange();
+  preRange.selectNodeContents(charsContainer);
+  preRange.setEnd(range.startContainer, range.startOffset);
 
-  let node: Text | null;
-  while ((node = walker.nextNode() as Text)) {
-    // 跳过纯空白文本节点
-    if (node.textContent && node.textContent.trim() !== '') {
-      textNodes.push({ node, startIndex: currentIndex });
-      currentIndex += node.textContent.length;
-    }
-  }
+  // 计算起始位置 - 统计字符数
+  const start = preRange.toString().length;
+  const end = start + range.toString().length;
+  const text = range.toString();
 
-  // 找到选区的起始和结束位置
-  let startOffset = -1;
-  let endOffset = -1;
-
-  textNodes.forEach(({ node, startIndex }) => {
-    if (node === range.startContainer) {
-      startOffset = startIndex + range.startOffset;
-    }
-    if (node === range.endContainer) {
-      endOffset = startIndex + range.endOffset;
-    }
-  });
-
-  if (startOffset === -1 || endOffset === -1) return null;
-
-  return {
-    start: startOffset,
-    end: endOffset,
-    text: range.toString(),
-  };
+  return { start, end, text };
 };
 
 export const LyricsEditor = memo((props: ILyricsEditorProps) => {
