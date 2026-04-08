@@ -1,10 +1,11 @@
 import { memo, useEffect, useMemo, useState } from 'react';
-import { Row, Col, Space, Modal } from 'antd';
+import { Row, Col, Modal } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { data } from './data';
 import { FolderCard, FolderDrawer, FolderSearch, FolderEditControls } from './components';
 import { setFoldersInfo } from '@/store/slices/folders/slice';
 import { selectFolders, type IFolder } from '@/store';
+import './index.less';
 
 export const Home = memo(() => {
   const [isEditing, setIsEditing] = useState(false);
@@ -70,8 +71,8 @@ export const Home = memo(() => {
 
   return (
     <div className="home-page">
-      <Space direction="vertical" style={{ width: '100%' }}>
-        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
           <FolderSearch onSearch={handleSearch} onReset={handleReset} />
           <FolderEditControls
             isEditing={isEditing}
@@ -81,8 +82,8 @@ export const Home = memo(() => {
             onConfirm={handleConfirm}
             onCreate={handleCreate}
           />
-        </Space>
-        <Row gutter={[16, 16]}>
+        </div>
+        <Row gutter={[16, 16]} className="folder-cards">
           {sortedFolders.map((folder) => (
             <Col key={folder.id} xs={24} sm={12} md={8}>
               <FolderCard
@@ -98,7 +99,7 @@ export const Home = memo(() => {
             </Col>
           ))}
         </Row>
-      </Space>
+      </div>
       <FolderDrawer onCreate={handleCreate} onCancel={handleCancel} />
     </div>
   );
