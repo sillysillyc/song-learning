@@ -10,7 +10,7 @@ const Header = () => {
   return (
     <AntHeader style={{ display: 'flex', alignItems: 'center' }}>
       <div style={{ flex: 1 }}>
-        <h1 style={{ color: 'white', margin: 0, cursor: 'pointer' }} onClick={() => navigate('/')}>
+        <h1 style={{ color: 'white', margin: 0, cursor: 'pointer' }} onClick={() => void navigate('/')}>
           Song Learning
         </h1>
       </div>

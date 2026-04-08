@@ -82,7 +82,7 @@ export const BadgePicker = memo((props: IBadgePickerProps) => {
         {/* 形状选择 */}
         <div className="shape-section">
           <div className="section-title">形状</div>
-          <Radio.Group value={selectedShape} onChange={(e) => handleShapeChange(e.target.value)}>
+          <Radio.Group value={selectedShape} onChange={(e) => handleShapeChange(e.target.value as BadgeShape)}>
             <Radio.Button value="default">默认</Radio.Button>
             <Radio.Button value="square">方形</Radio.Button>
             <Radio.Button value="circle">圆形</Radio.Button>

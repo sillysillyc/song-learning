@@ -48,7 +48,10 @@ export const SongDetail = memo(() => {
       if (currentSong && currentFolder) {
         const updatedSong: ISong = {
           ...currentSong,
-          ...values,
+          name: values.name as string,
+          singer: values.singer as string || '',
+          album: values.album as string || '',
+          duration: values.duration as string || '',
           updateTime: Date.now().toString(),
         };
 
@@ -87,7 +90,7 @@ export const SongDetail = memo(() => {
           };
 
           dispatch(updateFolderInfo({ folder: updatedFolder }));
-          dispatch(setCurrentSong(null as any));
+          dispatch(setCurrentSong(null as unknown as ISong));
 
           // 判断是否还有上一首歌
           if (updatedSongs.length > 0) {
@@ -109,7 +112,7 @@ export const SongDetail = memo(() => {
       <Card title="歌曲详情">
         <div style={{ textAlign: 'center', padding: 40 }}>
           <p style={{ color: '#999' }}>暂无歌曲信息</p>
-          <Button type="primary" onClick={() => navigate('/')}>
+          <Button type="primary" onClick={() => void navigate('/')}>
             返回首页
           </Button>
         </div>
@@ -157,7 +160,7 @@ export const SongDetail = memo(() => {
         )
       }
       extra={
-        <Affix offsetTop={60} target={() => document.querySelector<HTMLElement>('.ant-layout-content')}>
+        <Affix offsetTop={60} target={(): HTMLElement | null => document.querySelector<HTMLElement>('.ant-layout-content')}>
           <Space>
             {isEditMode ? (
               <>

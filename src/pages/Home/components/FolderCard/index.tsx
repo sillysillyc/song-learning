@@ -37,7 +37,7 @@ export const FolderCard = memo((props: FolderCardProps) => {
 
   const onClickFolderId = (e: React.MouseEvent<HTMLElement, MouseEvent>, id: string) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(id);
+    void navigator.clipboard.writeText(id);
   };
 
   return (

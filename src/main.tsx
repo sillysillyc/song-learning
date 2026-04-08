@@ -9,6 +9,7 @@ import 'dayjs/locale/zh-cn';
 import './index.css';
 import { useState } from 'react';
 
+// eslint-disable-next-line react-refresh/only-export-components
 const Root = () => {
   const [theme] = useState<ThemeConfig>({
     token: {},

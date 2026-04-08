@@ -11,6 +11,7 @@ const persistedReducer = persistReducer(
     version: 1,
     whitelist: ['folders'],
     debug: process.env.NODE_ENV === 'development',
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     stateReconciler: (inboundState, _originalState, _reducedState) => {
       return {
         ...inboundState,

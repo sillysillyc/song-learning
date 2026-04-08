@@ -17,11 +17,11 @@ export const CreateFolderDrawer = memo((props: CreateFolderDrawerProps) => {
   const folders = useSelector(selectFolders);
 
   const handleSubmit = () => {
-    form.validateFields().then((values) => {
+    void form.validateFields().then((values) => {
       const now = Date.now().toString();
       const newFolder: IFolder = {
         id: `folder_${now}_${Math.random().toString(36).substring(2, 9)}`,
-        name: values.name,
+        name: values.name as string,
         songCount: 0,
         createTime: now,
         updateTime: now,

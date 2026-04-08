@@ -11,7 +11,7 @@ export const FolderSearch = memo(({ onSearch, onReset }: FolderSearchProps) => {
   const [form] = Form.useForm();
 
   const handleSearch = () => {
-    const values = form.getFieldsValue();
+    const values = form.getFieldsValue() as { id?: string; name?: string };
     onSearch(values.id || '', values.name || '');
   };
 

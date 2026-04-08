@@ -51,15 +51,15 @@ export const FolderDrawer = memo(() => {
   };
 
   const handleAddSong = () => {
-    form.validateFields().then((values) => {
+    void form.validateFields().then((values) => {
       if (currentFolder) {
         const now = Date.now().toString();
         const newSong: ISong = {
           id: `song_${now}_${Math.random().toString(36).substring(2, 9)}`,
-          name: values.name,
-          singer: values.singer || '',
-          album: values.album || '',
-          duration: values.duration || '',
+          name: values.name as string,
+          singer: values.singer as string || '',
+          album: values.album as string || '',
+          duration: values.duration as string || '',
           createTime: now,
           updateTime: now,
           lyrics: [],
@@ -126,7 +126,7 @@ export const FolderDrawer = memo(() => {
       key: 'action',
       fixed: 'right',
       width: 120,
-      render: (_: any, record: ISong) => (
+      render: (_: unknown, record: ISong) => (
         <Space size="small">
           <Button
             type="link"

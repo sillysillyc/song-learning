@@ -14,6 +14,7 @@ const App = memo(() => {
             route.children.map((child) => <Route key={child.path} path={child.path} element={child.element} />)}
         </Route>
       )),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [routes],
   );
 
