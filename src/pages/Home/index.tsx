@@ -1,9 +1,10 @@
 import { memo, useMemo, useState } from 'react';
-import { Row, Col, Modal } from 'antd';
+import { Row, Col, Modal, Button, message } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { FolderCard, FolderDrawer, FolderSearch, FolderEditControls, CreateFolderDrawer } from './components';
 import { setFoldersInfo } from '@/store/slices/folders/slice';
 import { selectFolders, type IFolder } from '@/store';
+import { generateMockFolders, importMockDataToStorage } from '@/utils/mockData';
 import './index.less';
 
 export const Home = memo(() => {
@@ -14,6 +15,22 @@ export const Home = memo(() => {
   const dispatch = useDispatch();
 
   const sortedFolders = useMemo(() => [...folders].sort((a, b) => Number(b.updateTime) - Number(a.updateTime)), [folders]);
+
+  // 导入 Mock 数据
+  const handleImportMockData = () => {
+    Modal.confirm({
+      title: '导入 Mock 数据',
+      content: '确定要导入 50 条模拟数据吗？这将覆盖当前所有数据。',
+      okText: '确认导入',
+      cancelText: '取消',
+      onOk: () => {
+        const mockFolders = generateMockFolders(50);
+        dispatch(setFoldersInfo(mockFolders));
+        importMockDataToStorage(50);
+        message.success('已导入 50 条模拟数据');
+      },
+    });
+  };
 
   const handleSearch = (id: string, name: string) => {
     const filteredFolders = folders.filter((folder: IFolder) => {
@@ -75,6 +92,7 @@ export const Home = memo(() => {
             onConfirm={handleConfirm}
             onCreate={handleCreate}
           />
+          <Button onClick={handleImportMockData}>导入 Mock 数据</Button>
         </div>
         <Row gutter={[16, 16]} className="folder-cards">
           {sortedFolders.map((folder) => (
