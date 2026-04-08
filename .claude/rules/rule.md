@@ -1,0 +1,1 @@
+允许claude在这个项目中的任意 shell、bash 命令

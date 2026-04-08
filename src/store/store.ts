@@ -1,8 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import { combineReducers } from '@reduxjs/toolkit';
-import { foldersInfoReducer } from './slices';
+import { foldersInfoReducer, initialFoldersInfoState } from './slices';
 
 const persistedReducer = persistReducer(
   {
@@ -11,26 +10,26 @@ const persistedReducer = persistReducer(
     version: 1,
     whitelist: ['folders'],
     debug: process.env.NODE_ENV === 'development',
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    stateReconciler: (inboundState, _originalState, _reducedState) => {
+    // 从 storage 恢复数据时，保留 folders 列表，但重置临时状态
+    stateReconciler: (inboundState, _inboundKey, reducedState) => {
+      // 首次加载或 localStorage 为空时，使用初始化后的 reducer state
+      if (!inboundState) {
+        return reducedState;
+      }
+      const inbound = inboundState as typeof initialFoldersInfoState;
       return {
-        ...inboundState,
-        folders: {
-          folders: [],
-          currentFolder: null,
-          isFolderDrawerOpen: false,
-          ...inboundState.folders,
-        },
-      } as any;
+        folders: Array.isArray(inbound.folders) ? inbound.folders : initialFoldersInfoState.folders,
+        currentFolder: null,
+        currentSong: null,
+        isFolderDrawerOpen: false,
+      };
     },
   },
-  combineReducers({
-    folders: foldersInfoReducer,
-  }),
+  foldersInfoReducer,
 );
 
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: { folders: persistedReducer },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {

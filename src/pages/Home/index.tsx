@@ -16,7 +16,7 @@ export const Home = memo(() => {
   const sortedFolders = useMemo(() => [...folders].sort((a, b) => Number(b.updateTime) - Number(a.updateTime)), [folders]);
 
   const handleSearch = (id: string, name: string) => {
-    const filteredFolders = folders.filter((folder) => {
+    const filteredFolders = folders.filter((folder: IFolder) => {
       const matchesId = !id || folder.id.includes(id);
       const matchesName = !name || folder.name.includes(name);
       return matchesId && matchesName;
@@ -42,7 +42,7 @@ export const Home = memo(() => {
       title: '确认删除',
       content: `确定要删除选中的 ${selectedFolders.length} 个文件夹吗？`,
       onOk: () => {
-        const updatedFolders = folders.filter((folder) => !selectedFolders.some((sf) => sf.id === folder.id));
+        const updatedFolders = folders.filter((folder: IFolder) => !selectedFolders.some((sf: IFolder) => sf.id === folder.id));
         dispatch(setFoldersInfo(updatedFolders));
         setIsEditing(false);
         setSelectedFolders([]);
@@ -57,7 +57,7 @@ export const Home = memo(() => {
   const handleFolderSelect = (folder: IFolder) => {
     if (isEditing) {
       setSelectedFolders((prev) =>
-        prev.includes(folder) ? prev.filter((f) => f.id !== folder.id) : [...prev, folder],
+        prev.includes(folder) ? prev.filter((f: IFolder) => f.id !== folder.id) : [...prev, folder],
       );
     }
   };
@@ -85,7 +85,7 @@ export const Home = memo(() => {
                 isSelected={selectedFolders.some((f) => f.id === folder.id)}
                 onSelect={() => handleFolderSelect(folder)}
                 onDeleteFolder={(id) => {
-                  const updatedFolders = folders.filter((f) => f.id !== id);
+                  const updatedFolders = folders.filter((f: IFolder) => f.id !== id);
                   dispatch(setFoldersInfo(updatedFolders));
                 }}
               />

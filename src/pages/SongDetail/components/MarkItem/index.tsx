@@ -21,6 +21,7 @@ export const MarkItem = memo((props: IMarkItemProps) => {
   const getShapeClass = () => {
     if (mark.shape === 'circle') return 'circle';
     if (mark.shape === 'square') return 'square';
+    if (mark.shape === 'underline') return 'underline';
     return '';
   };
 
@@ -33,6 +34,23 @@ export const MarkItem = memo((props: IMarkItemProps) => {
     }
     return null;
   };
+
+  // 下划线标记特殊渲染
+  if (mark.shape === 'underline') {
+    return (
+      <Popover content={popoverContent} title="标记详情" trigger="click" placement="top">
+        <span
+          className="mark-item underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.();
+          }}
+        >
+          {selectedText}
+        </span>
+      </Popover>
+    );
+  }
 
   const markContent = (
     <div
@@ -50,9 +68,7 @@ export const MarkItem = memo((props: IMarkItemProps) => {
   // Popover 显示的详情内容
   const popoverContent = (
     <div style={{ maxWidth: 200 }}>
-      {mark.note && (
-        <Typography.Paragraph style={{ marginBottom: 8 }}>{mark.note}</Typography.Paragraph>
-      )}
+      {mark.note && <Typography.Paragraph style={{ marginBottom: 8 }}>{mark.note}</Typography.Paragraph>}
       <Space>
         <Button type="primary" icon={<EditOutlined />} size="small" onClick={onEdit}>
           编辑

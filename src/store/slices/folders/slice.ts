@@ -13,7 +13,7 @@ export const initialFoldersInfoState: IFoldersInfoState = {
 };
 
 export const foldersInfoSlice = createSlice({
-  name: 'foldersInfo',
+  name: 'folders',
   initialState: initialFoldersInfoState,
   // The `reducers` field lets us define reducers and generate associated actions
   reducers: {

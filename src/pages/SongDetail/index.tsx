@@ -2,14 +2,10 @@ import { memo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Affix, Button, Card, Space, Modal, Form, Input, message } from 'antd';
 import { useSelector, useDispatch } from 'react-redux';
-import {
-  selectCurrentFolder,
-  selectCurrentSong,
-  setCurrentSong,
-  updateFolderInfo,
-} from '@/store';
+import { selectCurrentFolder, selectCurrentSong, setCurrentSong, updateFolderInfo } from '@/store';
 import type { ISong } from '@/store';
 import { LyricsEditor } from './components';
+import { parseLyrics } from '@/utils/lyricsParser';
 import dayjs from 'dayjs';
 import './index.less';
 
@@ -20,6 +16,8 @@ export const SongDetail = memo(() => {
   const currentFolder = useSelector(selectCurrentFolder);
 
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isLyricsModalOpen, setIsLyricsModalOpen] = useState(false);
+  const [lyricsText, setLyricsText] = useState('');
   const [form] = Form.useForm();
 
   // 进入编辑模式
@@ -49,16 +47,16 @@ export const SongDetail = memo(() => {
         const updatedSong: ISong = {
           ...currentSong,
           name: values.name as string,
-          singer: values.singer as string || '',
-          album: values.album as string || '',
-          duration: values.duration as string || '',
+          singer: (values.singer as string) || '',
+          album: (values.album as string) || '',
+          duration: (values.duration as string) || '',
           updateTime: Date.now().toString(),
         };
 
         // 更新文件夹中的歌曲数据
         const updatedFolder = {
           ...currentFolder,
-          songs: currentFolder.songs.map((s) => (s.id === currentSong.id ? updatedSong : s)),
+          songs: currentFolder.songs.map((s: ISong) => (s.id === currentSong.id ? updatedSong : s)),
         };
 
         dispatch(updateFolderInfo({ folder: updatedFolder }));
@@ -71,6 +69,45 @@ export const SongDetail = memo(() => {
     }
   }, [currentSong, currentFolder, dispatch, form]);
 
+  // 导入歌词
+  const handleImportLyrics = useCallback(() => {
+    if (!lyricsText.trim()) {
+      message.warning('请输入歌词内容');
+      return;
+    }
+
+    if (currentSong && currentFolder) {
+      const parsedLyrics = parseLyrics(lyricsText);
+      const updatedSong: ISong = {
+        ...currentSong,
+        lyrics: parsedLyrics,
+        updateTime: Date.now().toString(),
+      };
+
+      // 更新文件夹中的歌曲数据
+      const updatedFolder = {
+        ...currentFolder,
+        songs: currentFolder.songs.map((s: ISong) => (s.id === currentSong.id ? updatedSong : s)),
+      };
+
+      dispatch(updateFolderInfo({ folder: updatedFolder }));
+      dispatch(setCurrentSong(updatedSong));
+      setIsLyricsModalOpen(false);
+      setLyricsText('');
+      message.success('歌词导入成功');
+    }
+  }, [currentSong, currentFolder, lyricsText, dispatch]);
+
+  // 打开歌词导入弹窗
+  const handleOpenLyricsModal = useCallback(() => {
+    if (currentSong) {
+      // 如果已有歌词，回填到输入框
+      const existingLyrics = currentSong.lyrics.map((l) => l.content).join('\n');
+      setLyricsText(existingLyrics);
+    }
+    setIsLyricsModalOpen(true);
+  }, [currentSong]);
+
   // 删除歌曲
   const handleDeleteSong = useCallback(() => {
     Modal.confirm({
@@ -81,7 +118,7 @@ export const SongDetail = memo(() => {
       onOk: () => {
         if (currentFolder) {
           // 从文件夹中移除歌曲
-          const updatedSongs = currentFolder.songs.filter((s) => s.id !== currentSong?.id);
+          const updatedSongs = currentFolder.songs.filter((s: ISong) => s.id !== currentSong?.id);
           const updatedFolder = {
             ...currentFolder,
             songs: updatedSongs,
@@ -126,11 +163,7 @@ export const SongDetail = memo(() => {
       title={
         isEditMode ? (
           <Form form={form} layout="inline" size="small">
-            <Form.Item
-              name="name"
-              label="歌曲名称"
-              rules={[{ required: true, message: '请输入歌曲名称' }]}
-            >
+            <Form.Item name="name" label="歌曲名称" rules={[{ required: true, message: '请输入歌曲名称' }]}>
               <Input placeholder="必填" style={{ width: 200 }} />
             </Form.Item>
             <Form.Item name="singer" label="歌手">
@@ -148,9 +181,21 @@ export const SongDetail = memo(() => {
             <div>
               <strong>歌曲名称：</strong> {currentSong.name}
             </div>
-            {currentSong.singer && <div><strong>歌手：</strong> {currentSong.singer}</div>}
-            {currentSong.album && <div><strong>专辑：</strong> {currentSong.album}</div>}
-            {currentSong.duration && <div><strong>时长：</strong> {currentSong.duration}</div>}
+            {currentSong.singer && (
+              <div>
+                <strong>歌手：</strong> {currentSong.singer}
+              </div>
+            )}
+            {currentSong.album && (
+              <div>
+                <strong>专辑：</strong> {currentSong.album}
+              </div>
+            )}
+            {currentSong.duration && (
+              <div>
+                <strong>时长：</strong> {currentSong.duration}
+              </div>
+            )}
             <div style={{ fontSize: 12, color: '#999' }}>
               创建时间：{dayjs(Number(currentSong.createTime)).format('YYYY-MM-DD HH:mm:ss')}
               {' | '}
@@ -160,7 +205,10 @@ export const SongDetail = memo(() => {
         )
       }
       extra={
-        <Affix offsetTop={60} target={(): HTMLElement | null => document.querySelector<HTMLElement>('.ant-layout-content')}>
+        <Affix
+          offsetTop={60}
+          target={(): HTMLElement | null => document.querySelector<HTMLElement>('.ant-layout-content')}
+        >
           <Space>
             {isEditMode ? (
               <>
@@ -172,6 +220,7 @@ export const SongDetail = memo(() => {
             ) : (
               <>
                 <Button onClick={handleEnterEditMode}>编辑</Button>
+                <Button onClick={handleOpenLyricsModal}>导入歌词</Button>
                 <Button danger onClick={handleDeleteSong}>
                   删除
                 </Button>
@@ -182,6 +231,29 @@ export const SongDetail = memo(() => {
       }
     >
       <LyricsEditor lyrics={currentSong.lyrics || []} />
+
+      {/* 歌词导入弹窗 */}
+      <Modal
+        title="导入歌词"
+        open={isLyricsModalOpen}
+        onOk={handleImportLyrics}
+        onCancel={() => {
+          setIsLyricsModalOpen(false);
+          setLyricsText('');
+        }}
+        width={600}
+        okText="确认导入"
+        cancelText="取消"
+      >
+        <div style={{ marginBottom: 12, color: '#666' }}>支持 LRC 格式和纯文本格式歌词</div>
+        <Input.TextArea
+          value={lyricsText}
+          onChange={(e) => setLyricsText(e.target.value)}
+          placeholder="请输入歌词内容...&#10;&#10;LRC 格式示例：&#10;[00:00.00] 歌曲名称&#10;[00:10.00] 第一句歌词&#10;[00:20.00] 第二句歌词&#10;&#10;纯文本格式示例：&#10;第一句歌词&#10;第二句歌词"
+          rows={12}
+          style={{ fontFamily: 'monospace' }}
+        />
+      </Modal>
     </Card>
   );
 });

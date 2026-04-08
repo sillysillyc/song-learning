@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { ColorPicker, Radio, Select, Space, Card } from 'antd';
+import { ColorPicker, Radio, Select, Space, Card, Input, Tabs } from 'antd';
 import type { BadgeColor, BadgeShape, BadgeSymbol } from '@/store';
 import { PRESET_COLORS, PRESET_SYMBOLS } from '@/utils/markUtils';
 import type { Color } from 'antd/es/color-picker';
@@ -17,13 +17,10 @@ export interface IBadgePickerProps {
 export const BadgePicker = memo((props: IBadgePickerProps) => {
   const { value, onChange } = props;
 
-  const [selectedColor, setSelectedColor] = useState<BadgeColor>(
-    value?.color || { type: 'preset', value: 'blue' },
-  );
+  const [selectedColor, setSelectedColor] = useState<BadgeColor>(value?.color || { type: 'preset', value: 'blue' });
   const [selectedShape, setSelectedShape] = useState<BadgeShape>(value?.shape || 'default');
-  const [selectedSymbol, setSelectedSymbol] = useState<BadgeSymbol>(
-    value?.symbol || { type: 'none', value: '' },
-  );
+  const [selectedSymbol, setSelectedSymbol] = useState<BadgeSymbol>(value?.symbol || { type: 'none', value: '' });
+  const [customText, setCustomText] = useState('');
 
   const getShapeClass = () => {
     if (selectedShape === 'circle') return 'circle';
@@ -44,6 +41,15 @@ export const BadgePicker = memo((props: IBadgePickerProps) => {
   const handleSymbolChange = (newSymbol: BadgeSymbol) => {
     setSelectedSymbol(newSymbol);
     onChange?.({ color: selectedColor, shape: selectedShape, symbol: newSymbol });
+  };
+
+  const handleCustomTextChange = (text: string) => {
+    setCustomText(text);
+    if (text.trim()) {
+      handleSymbolChange({ type: 'text', value: text.trim() });
+    } else {
+      handleSymbolChange({ type: 'none', value: '' });
+    }
   };
 
   return (
@@ -86,26 +92,52 @@ export const BadgePicker = memo((props: IBadgePickerProps) => {
             <Radio.Button value="default">默认</Radio.Button>
             <Radio.Button value="square">方形</Radio.Button>
             <Radio.Button value="circle">圆形</Radio.Button>
+            <Radio.Button value="underline">下划线</Radio.Button>
           </Radio.Group>
         </div>
 
-        {/* 符号选择 */}
+        {/* 符号选择 - 使用 Tabs 切换预设和自定义 */}
         <div className="symbol-section">
           <div className="section-title">符号</div>
-          <Select
-            className="symbol-select"
-            value={selectedSymbol.type === 'none' ? 'none' : selectedSymbol.value}
-            onChange={(val) => {
-              if (val === 'none') {
-                handleSymbolChange({ type: 'none', value: '' });
-              } else {
-                handleSymbolChange({ type: 'emoji', value: val });
-              }
-            }}
-            options={PRESET_SYMBOLS.map((s) => ({
-              label: `${s.label} ${s.value.type === 'emoji' ? s.value.value : ''}`,
-              value: s.value.type === 'emoji' ? s.value.value : 'none',
-            }))}
+          <Tabs
+            size="small"
+            tabBarStyle={{ marginBottom: 12 }}
+            items={[
+              {
+                key: 'preset',
+                label: '预设符号',
+                children: (
+                  <Select
+                    className="symbol-select"
+                    value={selectedSymbol.type === 'none' ? 'none' : selectedSymbol.value}
+                    onChange={(val) => {
+                      if (val === 'none') {
+                        handleSymbolChange({ type: 'none', value: '' });
+                      } else {
+                        handleSymbolChange({ type: 'emoji', value: val });
+                      }
+                    }}
+                    options={PRESET_SYMBOLS.map((s) => ({
+                      label: `${s.label} ${s.value.type === 'emoji' ? s.value.value : ''}`,
+                      value: s.value.type === 'emoji' ? s.value.value : 'none',
+                    }))}
+                  />
+                ),
+              },
+              {
+                key: 'custom',
+                label: '自定义文本',
+                children: (
+                  <Input
+                    value={customText}
+                    onChange={(e) => handleCustomTextChange(e.target.value)}
+                    placeholder="输入自定义符号文本"
+                    maxLength={10}
+                    showCount
+                  />
+                ),
+              },
+            ]}
           />
         </div>
       </Space>

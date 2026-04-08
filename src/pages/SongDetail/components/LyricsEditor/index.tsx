@@ -1,13 +1,7 @@
 import { memo, useState, useRef } from 'react';
 import { Typography, Space, Button, Modal, Input, Divider } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  addLyricMark,
-  updateLyricMark,
-  deleteLyricMark,
-  selectCurrentSong,
-  type ILyricMark,
-} from '@/store';
+import { addLyricMark, updateLyricMark, deleteLyricMark, selectCurrentSong, type ILyricMark } from '@/store';
 import { MarkItem } from '../MarkItem';
 import { BadgePicker } from '../BadgePicker';
 import { createLyricMark, getSelectionOffset } from '@/utils/markUtils';
@@ -64,7 +58,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
 
     // 检查是否已有标记覆盖此区域
     const hasExistingMark = marks.some(
-      (mark) =>
+      (mark: ILyricMark) =>
         mark.lyricIndex === lyricIndex &&
         ((offsetInfo.start >= mark.startOffset && offsetInfo.start < mark.startOffset + mark.length) ||
           (offsetInfo.end > mark.startOffset && offsetInfo.end <= mark.startOffset + mark.length) ||
@@ -177,7 +171,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
 
   // 渲染歌词中的标记
   const renderLyricWithMarks = (lyricContent: string, lyricIndex: number) => {
-    const lyricMarks = marks.filter((m) => m.lyricIndex === lyricIndex);
+    const lyricMarks = marks.filter((m: ILyricMark) => m.lyricIndex === lyricIndex);
 
     if (lyricMarks.length === 0) {
       return <span>{lyricContent}</span>;
@@ -192,9 +186,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
     sortedMarks.forEach((mark, index) => {
       // 标记前的普通文本
       if (mark.startOffset > lastIndex) {
-        elements.push(
-          <span key={`text-${index}`}>{lyricContent.substring(lastIndex, mark.startOffset)}</span>,
-        );
+        elements.push(<span key={`text-${index}`}>{lyricContent.substring(lastIndex, mark.startOffset)}</span>);
       }
 
       // 标记文本
@@ -222,86 +214,95 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
 
   return (
     <div ref={lyricsContainerRef} className="lyrics-editor">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: '100%' }}>
-        {/* 编辑模式切换按钮 */}
-        <div style={{ textAlign: 'right', marginBottom: 16 }}>
-          <Button
-            type={isEditMode ? 'primary' : 'default'}
-            onClick={() => setIsEditMode(!isEditMode)}
-          >
-            {isEditMode ? '完成编辑' : '编辑歌词'}
-          </Button>
-        </div>
-
-        {/* 歌词列表 */}
-        <div>
-          <Paragraph style={{ fontSize: 16 }}>
+      {isEditMode ? (
+        // 编辑模式：左右分栏布局
+        <div className="edit-mode-layout">
+          {/* 左侧：歌词列表 */}
+          <div className="lyrics-panel">
             <Typography.Title level={5}>歌词</Typography.Title>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
               {lyrics.map((lyric, index) => (
-                <div
-                  key={index}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    backgroundColor: isEditMode ? '#f5f5f5' : 'transparent',
-                    cursor: isEditMode ? 'crosshair' : 'default',
-                  }}
-                  onMouseUp={(e) => handleTextSelection(index, e)}
-                >
-                  <span style={{ color: '#999', marginRight: 8, userSelect: 'none' }}>
-                    [{String(index + 1).padStart(2, '0')}]
-                  </span>
+                <div key={index} className="lyric-item edit-mode" onMouseUp={(e) => handleTextSelection(index, e)}>
+                  <span className="lyric-index">[{String(index + 1).padStart(2, '0')}]</span>
+                  {renderLyricWithMarks(lyric.content, index)}
+                </div>
+              ))}
+            </div>
+            {/* 提示信息 */}
+            {!editingMark && <div className="edit-hint">💡 在歌词上拖动选择文字，即可创建标记</div>}
+          </div>
+
+          {/* 右侧：编辑工具面板 */}
+          <div className="tools-panel">
+            <Typography.Title level={5}>标记工具</Typography.Title>
+            {editingMark ? (
+              <div className="edit-form">
+                {editingMark.selectedText && (
+                  <div className="selected-text-info">
+                    <strong>选中的文字：</strong>
+                    <span className="text">{editingMark.selectedText}</span>
+                  </div>
+                )}
+
+                <Divider />
+
+                <BadgePicker
+                  value={selectedMarkStyle}
+                  onChange={(value: { color: BadgeColor; shape: BadgeShape; symbol: BadgeSymbol }) =>
+                    setSelectedMarkStyle(value)
+                  }
+                />
+
+                <div className="note-section">
+                  <div className="section-title">备注</div>
+                  <Input.TextArea
+                    value={editingNote}
+                    onChange={(e) => setEditingNote(e.target.value)}
+                    placeholder="可选：添加备注说明"
+                    rows={3}
+                  />
+                </div>
+
+                <Divider />
+
+                <Space className="action-buttons">
+                  <Button type="primary" onClick={editingMark.markId ? handleUpdateMark : handleSaveMark} block>
+                    {editingMark.markId ? '更新标记' : '保存标记'}
+                  </Button>
+                  <Button onClick={handleCancelMark} block>
+                    取消
+                  </Button>
+                </Space>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <p>请先在左侧选择要标记的歌词文字</p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        // 查看模式：单栏显示
+        <div>
+          <Paragraph className="view-mode">
+            <Typography.Title level={5}>歌词</Typography.Title>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
+              {lyrics.map((lyric, index) => (
+                <div key={index} className="lyric-item view-mode">
+                  <span className="lyric-index">[{String(index + 1).padStart(2, '0')}]</span>
                   {renderLyricWithMarks(lyric.content, index)}
                 </div>
               ))}
             </div>
           </Paragraph>
         </div>
+      )}
 
-        {/* 编辑面板 - 创建/编辑标记时显示 */}
-        {editingMark && (
-          <div>
-            <Divider />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%' }}>
-              {editingMark.selectedText && (
-                <div>
-                  <strong>选中的文字：</strong>
-                  <span style={{ color: '#1677ff' }}>{editingMark.selectedText}</span>
-                </div>
-              )}
-
-              <BadgePicker
-                value={selectedMarkStyle}
-                onChange={(value: { color: BadgeColor; shape: BadgeShape; symbol: BadgeSymbol }) => setSelectedMarkStyle(value)}
-              />
-
-              <div>
-                <div style={{ marginBottom: 8 }}>备注</div>
-                <Input.TextArea
-                  value={editingNote}
-                  onChange={(e) => setEditingNote(e.target.value)}
-                  placeholder="可选：添加备注说明"
-                  rows={2}
-                />
-              </div>
-
-              <Space>
-                <Button type="primary" onClick={editingMark.markId ? handleUpdateMark : handleSaveMark}>
-                  {editingMark.markId ? '更新标记' : '保存标记'}
-                </Button>
-                <Button onClick={handleCancelMark}>取消</Button>
-              </Space>
-            </div>
-          </div>
-        )}
-
-        {/* 提示信息 */}
-        {isEditMode && !editingMark && (
-          <div style={{ color: '#666', fontSize: 14, textAlign: 'center', padding: 16 }}>
-            💡 在歌词上拖动选择文字，即可创建标记
-          </div>
-        )}
+      {/* 编辑模式切换按钮 */}
+      <div className="edit-mode-toggle">
+        <Button type={isEditMode ? 'primary' : 'default'} onClick={() => setIsEditMode(!isEditMode)}>
+          {isEditMode ? '完成编辑' : '编辑歌词'}
+        </Button>
       </div>
     </div>
   );

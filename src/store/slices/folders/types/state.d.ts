@@ -1,7 +1,7 @@
 /**
  * 标记的形状类型
  */
-export type BadgeShape = 'default' | 'square' | 'circle';
+export type BadgeShape = 'default' | 'square' | 'circle' | 'underline';
 
 /**
  * 标记的颜色类型（支持预设和自定义）

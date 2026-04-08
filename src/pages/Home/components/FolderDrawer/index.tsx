@@ -28,7 +28,7 @@ export const FolderDrawer = memo(() => {
       content: `确定要删除歌曲 "${song.name}" 吗？`,
       onOk: () => {
         if (currentFolder) {
-          const updatedSongs = currentFolder.songs.filter((s) => s.id !== song.id);
+          const updatedSongs = currentFolder.songs.filter((s: ISong) => s.id !== song.id);
           const updatedFolder: IFolder = {
             ...currentFolder,
             songs: updatedSongs,
@@ -39,7 +39,7 @@ export const FolderDrawer = memo(() => {
           dispatch(updateFolderInfo({ folder: updatedFolder }));
 
           // 同时更新 folders 列表中的数据
-          const updatedFolders = folders.map((f) =>
+          const updatedFolders = folders.map((f: IFolder) =>
             f.id === currentFolder.id ? updatedFolder : f
           );
           dispatch(setFoldersInfo(updatedFolders));
