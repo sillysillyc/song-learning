@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, useRef } from 'react';
 import { Typography, Space, Button, Modal, Input, Divider } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -26,10 +26,8 @@ interface EditingMarkState {
   lyricIndex: number;
   startOffset: number;
   length: number;
-  selectedIndices: number[];
 }
 
-// 单个字符/单词组件
 interface LyricCharProps {
   text: string;
   index: number;
@@ -38,22 +36,35 @@ interface LyricCharProps {
   isSelected: boolean;
   isMarked: boolean;
   mark?: ILyricMark;
-  onCharClick: (index: number, lyricIndex: number) => void;
+  onMouseDown: (index: number, lyricIndex: number) => void;
+  onMouseEnter: (index: number, lyricIndex: number) => void;
+  onClick: () => void;
 }
 
+// 单个字符/单词组件
 const LyricChar = memo((props: LyricCharProps) => {
-  const { text, index, lyricIndex, isEditMode, isSelected, isMarked, onCharClick } = props;
+  const { text, index, lyricIndex, isEditMode, isSelected, isMarked, onMouseDown, onMouseEnter, onClick } = props;
 
-  const handleClick = useCallback(() => {
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      onMouseDown(index, lyricIndex);
+    },
+    [index, lyricIndex, onMouseDown],
+  );
+
+  const handleMouseEnter = useCallback(() => {
     if (isEditMode) {
-      onCharClick(index, lyricIndex);
+      onMouseEnter(index, lyricIndex);
     }
-  }, [isEditMode, index, lyricIndex, onCharClick]);
+  }, [isEditMode, index, lyricIndex, onMouseEnter]);
 
   return (
     <span
       className={`lyric-char ${isSelected ? 'selected' : ''} ${isMarked ? 'marked' : ''} ${isEditMode ? 'editable' : ''}`}
-      onClick={handleClick}
+      onMouseDown={handleMouseDown}
+      onMouseEnter={handleMouseEnter}
+      onClick={onClick}
     >
       {text}
     </span>
@@ -79,12 +90,18 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
   });
   const [editingNote, setEditingNote] = useState('');
 
-  // 点击字符
-  const handleCharClick = useCallback(
+  const isSelectingRef = useRef(false);
+  const anchorRef = useRef<{ index: number; lyricIndex: number } | null>(null);
+
+  // 鼠标按下 - 开始选择
+  const handleMouseDown = useCallback(
     (charIndex: number, lyricIndex: number) => {
       if (!isEditMode) return;
 
-      // 如果已有标记在该位置，不处理
+      isSelectingRef.current = true;
+      anchorRef.current = { index: charIndex, lyricIndex };
+
+      // 检查是否点击在已有标记上
       const existingMark = marks.find(
         (mark: ILyricMark) =>
           mark.lyricIndex === lyricIndex &&
@@ -101,10 +118,6 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
           lyricIndex,
           startOffset: existingMark.startOffset,
           length: existingMark.length,
-          selectedIndices: Array.from(
-            { length: existingMark.length },
-            (_, i) => existingMark.startOffset + i,
-          ),
         });
         setSelectedMarkStyle({
           color: existingMark.color,
@@ -112,64 +125,72 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
           symbol: existingMark.symbol,
         });
         setEditingNote(existingMark.note || '');
-        return;
+        isSelectingRef.current = false;
+        anchorRef.current = null;
+      } else {
+        // 开始新的选择
+        setEditingMark({
+          isEditing: true,
+          lyricIndex,
+          selectedText: lyrics[lyricIndex]?.content[charIndex] || '',
+          startOffset: charIndex,
+          length: 1,
+        });
       }
-
-      // 开始或扩展选择
-      setEditingMark((prev) => {
-        if (!prev || prev.lyricIndex !== lyricIndex) {
-          // 开始新的选择
-          return {
-            isEditing: true,
-            lyricIndex,
-            selectedText: lyrics[lyricIndex]?.content[charIndex] || '',
-            startOffset: charIndex,
-            length: 1,
-            selectedIndices: [charIndex],
-          };
-        }
-
-        // 在同一行内扩展选择
-        const newIndices = [...prev.selectedIndices];
-        const lastSelected = Math.max(...newIndices);
-        const firstSelected = Math.min(...newIndices);
-
-        if (charIndex > lastSelected) {
-          // 向右扩展
-          for (let i = lastSelected + 1; i <= charIndex; i++) {
-            if (!newIndices.includes(i)) newIndices.push(i);
-          }
-        } else if (charIndex < firstSelected) {
-          // 向左扩展
-          for (let i = charIndex; i < firstSelected; i++) {
-            if (!newIndices.includes(i)) newIndices.push(i);
-          }
-        } else {
-          // 缩小选择
-          while (newIndices.length > 1 && Math.max(...newIndices) !== charIndex && Math.min(...newIndices) !== charIndex) {
-            if (charIndex > (lastSelected + firstSelected) / 2) {
-              newIndices.splice(newIndices.indexOf(Math.min(...newIndices)), 1);
-            } else {
-              newIndices.splice(newIndices.indexOf(Math.max(...newIndices)), 1);
-            }
-          }
-        }
-
-        newIndices.sort((a, b) => a - b);
-        const newStart = Math.min(...newIndices);
-        const newLength = Math.max(...newIndices) - newStart + 1;
-
-        return {
-          ...prev,
-          selectedIndices: newIndices,
-          startOffset: newStart,
-          length: newLength,
-          selectedText: lyrics[lyricIndex]?.content.substring(newStart, newStart + newLength) || '',
-        };
-      });
     },
     [isEditMode, marks, lyrics],
   );
+
+  // 鼠标移入 - 扩展选择
+  const handleMouseEnter = useCallback(
+    (charIndex: number, lyricIndex: number) => {
+      if (!isEditMode || !isSelectingRef.current || !anchorRef.current) return;
+
+      // 只允许在同一行内选择
+      if (lyricIndex !== anchorRef.current.lyricIndex) return;
+
+      const anchor = anchorRef.current.index;
+      const start = Math.min(anchor, charIndex);
+      const length = Math.abs(charIndex - anchor) + 1;
+      const lyricContent = lyrics[lyricIndex]?.content || '';
+
+      setEditingMark((prev) => {
+        if (!prev || prev.lyricIndex !== lyricIndex) return prev;
+        return {
+          ...prev,
+          startOffset: start,
+          length,
+          selectedText: lyricContent.substring(start, start + length),
+        };
+      });
+    },
+    [isEditMode, lyrics],
+  );
+
+  // 鼠标松开
+  const handleMouseUp = useCallback(() => {
+    isSelectingRef.current = false;
+  }, []);
+
+  // 点击已有标记
+  const handleMarkClick = useCallback((mark: ILyricMark) => {
+    if (!isEditMode) return;
+
+    setEditingMark({
+      isEditing: true,
+      markId: mark.id,
+      selectedText: '',
+      lyricIndex: mark.lyricIndex,
+      startOffset: mark.startOffset,
+      length: mark.length,
+    });
+    setSelectedMarkStyle({
+      color: mark.color,
+      shape: mark.shape,
+      symbol: mark.symbol,
+    });
+    setEditingNote(mark.note || '');
+  }, [isEditMode]);
 
   // 保存标记
   const handleSaveMark = () => {
@@ -204,25 +225,6 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
         resetEditingState();
       },
     });
-  };
-
-  // 编辑标记
-  const handleEditMark = (mark: ILyricMark) => {
-    setEditingMark({
-      isEditing: true,
-      markId: mark.id,
-      selectedText: '',
-      lyricIndex: mark.lyricIndex,
-      startOffset: mark.startOffset,
-      length: mark.length,
-      selectedIndices: Array.from({ length: mark.length }, (_, i) => mark.startOffset + i),
-    });
-    setSelectedMarkStyle({
-      color: mark.color,
-      shape: mark.shape,
-      symbol: mark.symbol,
-    });
-    setEditingNote(mark.note || '');
   };
 
   // 更新标记
@@ -269,7 +271,8 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
 
         // 检查是否在当前选择范围内
         const isSelected = editingMark?.lyricIndex === lyricIndex &&
-          editingMark.selectedIndices.includes(charIndex);
+          charIndex >= editingMark.startOffset &&
+          charIndex < editingMark.startOffset + editingMark.length;
 
         return (
           <LyricChar
@@ -281,16 +284,18 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
             isSelected={!!isSelected}
             isMarked={!!mark}
             mark={mark}
-            onCharClick={handleCharClick}
+            onMouseDown={handleMouseDown}
+            onMouseEnter={handleMouseEnter}
+            onClick={() => mark && handleMarkClick(mark)}
           />
         );
       });
     },
-    [marks, editingMark, isEditMode, handleCharClick],
+    [marks, editingMark, isEditMode, handleMouseDown, handleMouseEnter, handleMarkClick],
   );
 
   return (
-    <div className="lyrics-editor">
+    <div className="lyrics-editor" onMouseUp={handleMouseUp}>
       {isEditMode ? (
         // 编辑模式：左右分栏布局
         <div className="edit-mode-layout">
@@ -307,7 +312,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
             </div>
             {/* 提示信息 */}
             {!editingMark && (
-              <div className="edit-hint">💡 点击字符来选择，拖动扩展选择范围</div>
+              <div className="edit-hint">💡 在文字上按住鼠标左键并拖动来选择范围</div>
             )}
           </div>
 
@@ -347,28 +352,16 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
                 <Space className="action-buttons">
                   {editingMark.markId ? (
                     <>
-                      <Button
-                        type="primary"
-                        onClick={handleUpdateMark}
-                        block
-                      >
+                      <Button type="primary" onClick={handleUpdateMark} block>
                         更新标记
                       </Button>
-                      <Button
-                        danger
-                        onClick={() => handleDeleteMark(editingMark.markId!)}
-                        block
-                      >
+                      <Button danger onClick={() => handleDeleteMark(editingMark.markId!)} block>
                         删除标记
                       </Button>
                     </>
                   ) : (
                     <>
-                      <Button
-                        type="primary"
-                        onClick={handleSaveMark}
-                        block
-                      >
+                      <Button type="primary" onClick={handleSaveMark} block>
                         保存标记
                       </Button>
                       <Button onClick={handleCancelMark} block>
@@ -380,7 +373,7 @@ export const LyricsEditor = memo((props: ILyricsEditorProps) => {
               </div>
             ) : (
               <div className="empty-state">
-                <p>请先在左侧点击要标记的文字</p>
+                <p>请在左侧拖动鼠标选择要标记的文字</p>
               </div>
             )}
           </div>

@@ -1,4 +1,4 @@
-1. 自动按模块和进度执行 git commit 命令和提交message，message里不要带有 `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>` 这样的内容，也不要带上其他人的信息，只写纯粹的功能变化和bug修复
+1. 自动按模块和进度执行 git commit 命令和提交message，
 2. 完成 commit 操作后自动 push
 3. commit message 规范
 ---
@@ -22,4 +22,4 @@ eg:
 feat: [QLYBZCPB-4422] 视频监控优化
 1. 更新 xx 样式
 2. xx 组件拆分
-3. xx 数据存入 redux
+注意：commit message 中不要包含 `Co-Authored-By` 或其他作者信息，只写纯粹的功能变化和 bug 修复
