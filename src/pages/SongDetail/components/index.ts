@@ -1,3 +1,3 @@
-export * from './LyricsEditor';
-export * from './BadgePicker';
-export * from './MarkItem';
+export * from './LyricsEditor/index';
+export * from './BadgePicker/index';
+export * from './MarkItem/index';

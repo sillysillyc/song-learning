@@ -1,8 +1,7 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Row, Col, Modal } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
-import { data } from './data';
-import { FolderCard, FolderDrawer, FolderSearch, FolderEditControls } from './components';
+import { FolderCard, FolderDrawer, FolderSearch, FolderEditControls, CreateFolderDrawer } from './components';
 import { setFoldersInfo } from '@/store/slices/folders/slice';
 import { selectFolders, type IFolder } from '@/store';
 import './index.less';
@@ -10,16 +9,11 @@ import './index.less';
 export const Home = memo(() => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedFolders, setSelectedFolders] = useState<IFolder[]>([]);
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const folders = useSelector(selectFolders);
   const dispatch = useDispatch();
 
-  console.log('[folders]', folders);
-  const sortedFolders = useMemo(() => [...folders].sort((a, b) => Number(a.updateTime) - Number(b.updateTime)), [folders]);
-
-  // 初始化数据到 redux
-  useEffect(() => {
-    // dispatch(setFoldersInfo(data));
-  }, []);
+  const sortedFolders = useMemo(() => [...folders].sort((a, b) => Number(b.updateTime) - Number(a.updateTime)), [folders]);
 
   const handleSearch = (id: string, name: string) => {
     const filteredFolders = folders.filter((folder) => {
@@ -57,8 +51,7 @@ export const Home = memo(() => {
   };
 
   const handleCreate = () => {
-    // TODO: 实现创建文件夹逻辑
-    console.log('创建文件夹');
+    setIsCreateDrawerOpen(true);
   };
 
   const handleFolderSelect = (folder: IFolder) => {
@@ -100,7 +93,8 @@ export const Home = memo(() => {
           ))}
         </Row>
       </div>
-      <FolderDrawer onCreate={handleCreate} onCancel={handleCancel} />
+      <FolderDrawer />
+      <CreateFolderDrawer open={isCreateDrawerOpen} onClose={() => setIsCreateDrawerOpen(false)} />
     </div>
   );
 });

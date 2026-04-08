@@ -1,14 +1,13 @@
 export const getUuid = () => {
-  let len = 32;
+  const len = 32;
 
-  let _len = Number(len);
+  const _len = Number(len);
 
-  let radix = 16; // 16进制
+  const radix = 16; // 16 进制
 
-  let chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
-  let uuid = [];
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+  const uuid: string[] = [];
   let i;
-  radix = radix || chars.length;
 
   if (_len) {
     for (i = 0; i < _len; i += 1) {

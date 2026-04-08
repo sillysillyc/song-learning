@@ -76,6 +76,7 @@ export const data: IFolder[] = Array.from({ length: 60 }, (_, i) => ({
         { content: '风吹过的 如云烟' },
         { content: '你的故事讲到了哪儿' },
       ],
+      marks: [],
     },
   ],
 }));

@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Button, Space } from 'antd';
 import type { IFolder } from '@/store';
-import { FolderDrawer } from './FolderDrawer';
+import './index.less';
 
 interface FolderEditControlsProps {
   isEditing: boolean;
@@ -13,10 +13,10 @@ interface FolderEditControlsProps {
 }
 
 export const FolderEditControls = memo(
-  ({ isEditing, selectedFolders, onEdit, onCancel, onConfirm, onCreate }: FolderEditControlsProps) => {
+  ({ isEditing, onEdit, onCancel, onConfirm, onCreate }: FolderEditControlsProps) => {
     if (isEditing) {
       return (
-        <Space>
+        <Space className="folder-edit-controls">
           <Button onClick={onCancel}>取消</Button>
           <Button type="primary" onClick={onConfirm}>
             确定
@@ -26,10 +26,11 @@ export const FolderEditControls = memo(
     }
 
     return (
-      <Space>
+      <Space className="folder-edit-controls">
         <Button onClick={onEdit}>编辑</Button>
-        <Button onClick={onCreate}>新增</Button>
-        <FolderDrawer onCreate={onCreate} onCancel={onCancel} />
+        <Button type="primary" onClick={onCreate}>
+          新增
+        </Button>
       </Space>
     );
   },

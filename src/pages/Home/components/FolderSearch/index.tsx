@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Form, Input, Button, Space } from 'antd';
-import type { IFolder } from '@/store';
+import './index.less';
 
 interface FolderSearchProps {
   onSearch: (id: string, name: string) => void;
@@ -11,7 +11,7 @@ export const FolderSearch = memo(({ onSearch, onReset }: FolderSearchProps) => {
   const [form] = Form.useForm();
 
   const handleSearch = () => {
-    const values = form.getFieldsValue();
+    const values = form.getFieldsValue() as { id?: string; name?: string };
     onSearch(values.id || '', values.name || '');
   };
 

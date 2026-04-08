@@ -1,10 +1,11 @@
 import { store } from './store';
-import type { ThunkAction, Action, ThunkDispatch, AnyAction, Dispatch } from '@reduxjs/toolkit';
-import type { CounterAsyncThunksPrefix } from './slices';
+import type { ThunkAction, Action, ThunkDispatch, AnyAction } from '@reduxjs/toolkit';
+import type { GlobalAsyncThunksPrefix } from './slices';
 
-export interface IRootLoadingState extends ILoadingState<CounterAsyncThunksPrefix | GlobalAsyncThunksPrefix> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface IRootLoadingState extends ILoadingState<GlobalAsyncThunksPrefix> {}
 
-export type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction> & Dispatch<AnyAction>;
+export type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
 export type RootState = ReturnType<typeof store.getState> & IRootLoadingState;
 
