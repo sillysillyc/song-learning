@@ -1,0 +1,6 @@
+**/*.md
+**/*.svg
+**/*.html
+package.json
+output
+pkg

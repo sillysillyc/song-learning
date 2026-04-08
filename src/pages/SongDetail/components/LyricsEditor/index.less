@@ -1,0 +1,56 @@
+.lyrics-editor {
+  .edit-mode-toggle {
+    text-align: right;
+    margin-bottom: 16px;
+  }
+
+  .lyrics-list {
+    font-size: 16px;
+
+    .lyric-item {
+      padding: 8px 12px;
+      border-radius: 8px;
+      background-color: transparent;
+      cursor: default;
+      transition: background-color 0.3s;
+
+      &.edit-mode {
+        background-color: #f5f5f5;
+        cursor: crosshair;
+
+        &:hover {
+          background-color: #e6e6e6;
+        }
+      }
+
+      .lyric-index {
+        color: #999;
+        margin-right: 8px;
+        user-select: none;
+      }
+    }
+  }
+
+  .edit-panel {
+    margin-top: 16px;
+
+    .selected-text {
+      color: #1677ff;
+    }
+
+    .note-input {
+      margin-top: 8px;
+    }
+
+    .action-buttons {
+      margin-top: 16px;
+    }
+  }
+
+  .edit-hint {
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+    padding: 16px;
+  }
+}
