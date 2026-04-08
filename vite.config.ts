@@ -10,15 +10,12 @@ const __dirname = path.dirname(__filename);
 
 // https://vite.dev/config/
 export default defineConfig({
-  dev: {
-    sourcemap: true,
-  },
-  server: {
-    hmr:{
-      overlay: false
-    }
-  },                            
   plugins: [react()],
+  server: {
+    hmr: {
+      overlay: false,
+    },
+  },
   css: {
     preprocessorOptions: {
       less: {

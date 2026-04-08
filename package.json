@@ -41,7 +41,7 @@
     "@types/redux-persist": "^4.3.1",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "^4.7.0",
     "cssnano": "^7.0.7",
     "eslint": "^9.29.0",
     "eslint-config-alloy": "^5.1.2",
@@ -55,7 +55,7 @@
     "prettier": "^3.8.1",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1",
-    "vite": "^8.0.7"
+    "vite": "^5.4.21"
   },
   "husky": {
     "hooks": {
