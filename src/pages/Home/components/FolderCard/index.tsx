@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import type { IFolder } from '@/store';
 import { setCurrentFolder, updateIsFolderDrawerOpen } from '@/store/slices/folders/slice';
 import dayjs from 'dayjs';
+import './index.less';
 
 interface FolderCardProps {
   folder: IFolder;
@@ -41,6 +42,7 @@ export const FolderCard = memo((props: FolderCardProps) => {
 
   return (
     <Card
+      className={`folder-card ${isEditing ? 'editing' : ''} ${isSelected ? 'selected' : ''}`}
       title={
         isEditing ? (
           <Checkbox checked={isSelected} onChange={() => onSelect?.()}>
@@ -53,19 +55,21 @@ export const FolderCard = memo((props: FolderCardProps) => {
       extra={<Button onClick={handleDelete}>删除</Button>}
       onClick={isEditing ? undefined : handleOpenDrawer}
     >
-      <p
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        歌曲ID:
-        <Button type="link" onClick={(e) => onClickFolderId(e, folder.id)}>
-          {folder.id}
-        </Button>
-      </p>
-      <p>歌曲数量: {folder.songCount}</p>
-      <p>创建时间: {dayjs(Number(folder.createTime)).format('YYYY-MM-DD HH:mm:ss')}</p>
-      <p>更新时间: {dayjs(Number(folder.updateTime)).format('YYYY-MM-DD HH:mm:ss')}</p>
+      <div className="folder-info">
+        <p
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          歌曲 ID:
+          <Button type="link" onClick={(e) => onClickFolderId(e, folder.id)}>
+            {folder.id}
+          </Button>
+        </p>
+        <p>歌曲数量：{folder.songCount}</p>
+        <p>创建时间：{dayjs(Number(folder.createTime)).format('YYYY-MM-DD HH:mm:ss')}</p>
+        <p>更新时间：{dayjs(Number(folder.updateTime)).format('YYYY-MM-DD HH:mm:ss')}</p>
+      </div>
     </Card>
   );
 });

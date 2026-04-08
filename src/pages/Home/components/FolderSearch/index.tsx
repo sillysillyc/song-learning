@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Form, Input, Button, Space } from 'antd';
-import type { IFolder } from '@/store';
+import './index.less';
 
 interface FolderSearchProps {
   onSearch: (id: string, name: string) => void;

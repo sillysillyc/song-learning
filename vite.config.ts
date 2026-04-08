@@ -13,7 +13,11 @@ export default defineConfig({
   dev: {
     sourcemap: true,
   },
-  server: {},
+  server: {
+    hmr:{
+      overlay: false
+    }
+  },                            
   plugins: [react()],
   css: {
     preprocessorOptions: {

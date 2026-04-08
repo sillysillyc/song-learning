@@ -11,7 +11,7 @@ const persistedReducer = persistReducer(
     version: 1,
     whitelist: ['folders'],
     debug: process.env.NODE_ENV === 'development',
-    stateReconciler: (inboundState, originalState) => {
+    stateReconciler: (inboundState, _originalState, _reducedState) => {
       return {
         ...inboundState,
         folders: {
@@ -20,7 +20,7 @@ const persistedReducer = persistReducer(
           isFolderDrawerOpen: false,
           ...inboundState.folders,
         },
-      };
+      } as any;
     },
   },
   combineReducers({

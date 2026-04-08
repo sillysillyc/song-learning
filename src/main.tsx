@@ -10,7 +10,7 @@ import './index.css';
 import { useState } from 'react';
 
 const Root = () => {
-  const [theme, setTheme] = useState<ThemeConfig>({
+  const [theme] = useState<ThemeConfig>({
     token: {},
     components: {
       Layout: {},

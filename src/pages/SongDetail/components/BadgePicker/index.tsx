@@ -1,7 +1,8 @@
 import { memo, useState } from 'react';
-import { ColorPicker, Radio, Select, Space, Card, type Color } from 'antd';
+import { ColorPicker, Radio, Select, Space, Card } from 'antd';
 import type { BadgeColor, BadgeShape, BadgeSymbol } from '@/store';
-import { PRESET_COLORS, PRESET_SHAPES, PRESET_SYMBOLS } from '@/utils/markUtils';
+import { PRESET_COLORS, PRESET_SYMBOLS } from '@/utils/markUtils';
+import type { Color } from 'antd/es/color-picker';
 import './index.less';
 
 export interface IBadgePickerProps {

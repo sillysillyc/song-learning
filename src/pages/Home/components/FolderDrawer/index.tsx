@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Drawer, Table, Button, Space, Modal, message, Form, Input } from 'antd';
+import { Drawer, Table, Button, Space, Modal, message, Form, Input, type TableColumnType } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import {
@@ -11,14 +11,8 @@ import { setCurrentSong, updateIsFolderDrawerOpen, updateFolderInfo, setFoldersI
 import type { ISong, IFolder } from '@/store';
 import dayjs from 'dayjs';
 import './index.less';
-import './index.less';
 
-interface FolderDrawerProps {
-  onCreate: () => void;
-  onCancel: () => void;
-}
-
-export const FolderDrawer = memo(({ onCreate, onCancel }: FolderDrawerProps) => {
+export const FolderDrawer = memo(() => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const currentFolder = useSelector(selectCurrentFolder);
@@ -119,20 +113,20 @@ export const FolderDrawer = memo(({ onCreate, onCancel }: FolderDrawerProps) => 
       title: '创建时间',
       dataIndex: 'createTime',
       key: 'createTime',
-      render: (text) => dayjs(Number(text)).format('YYYY-MM-DD HH:mm:ss'),
+      render: (text: string) => dayjs(Number(text)).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
       title: '最新编辑时间',
       dataIndex: 'updateTime',
       key: 'updateTime',
-      render: (text) => dayjs(Number(text)).format('YYYY-MM-DD HH:mm:ss'),
+      render: (text: string) => dayjs(Number(text)).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
       title: '操作',
       key: 'action',
       fixed: 'right',
       width: 120,
-      render: (_: any, record) => (
+      render: (_: any, record: ISong) => (
         <Space size="small">
           <Button
             type="link"
